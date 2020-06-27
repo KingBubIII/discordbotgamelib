@@ -194,6 +194,7 @@ async def help(ctx, commandName=None):
 @discord_client.command() 
 async def echo(ctx, *, msg='echo'):
     await ctx.send(f"""```{msg}```""")
+    await ctx.send("```changes work```")
     
 @discord_client.command()
 async def readLib(ctx, user_mention, formatting=None):
