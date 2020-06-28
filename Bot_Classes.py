@@ -17,7 +17,7 @@ class Game:
         else:
             name_type = self.FullName
 
-        if len(formatting) > 1:
+        if len(formatting) > 2:
             for char in formatting[1::]:
                 if char in Possible_formats:
                     if char == 'a':
