@@ -17,23 +17,22 @@ class Game:
         else:
             name_type = self.FullName
 
-        if len(formatting) > 2:
-            for char in formatting[1::]:
-                if char in Possible_formats:
-                    if char == 'a':
-                        formatted_details += 'Hours: '+self.HoursPlayed+'\n'+'Steam store link: '+self.StorePage+'\n'+'Online: '+self.Multiplayer+'\n'+'Downloaded: '+self.Downloaded
-                    else:
-                        if char == 'h':
-                            formatted_details += 'Hours: ' + self.HoursPlayed
-                            formatted_details += '\n'
-                        if char == 's':
-                            formatted_details += 'Steam store link: ' + self.StorePage
-                            formatted_details += '\n'
-                        if char == 'o':
-                            formatted_details += 'Online: ' + self.Multiplayer
-                            formatted_details += '\n'
-                        if char == 'd':
-                            formatted_details += 'Downloaded: ' + self.Downloaded
-                            formatted_details += '\n'
-                    Possible_formats.remove(char)
+        for char in formatting[1::]:
+            if char in Possible_formats:
+                if char == 'a':
+                    formatted_details += 'Hours: '+self.HoursPlayed+'\n'+'Steam store link: '+self.StorePage+'\n'+'Online: '+self.Multiplayer+'\n'+'Downloaded: '+self.Downloaded
+                else:
+                    if char == 'h':
+                        formatted_details += 'Hours: ' + self.HoursPlayed
+                        formatted_details += '\n'
+                    if char == 's':
+                        formatted_details += 'Steam store link: ' + self.StorePage
+                        formatted_details += '\n'
+                    if char == 'o':
+                        formatted_details += 'Online: ' + self.Multiplayer
+                        formatted_details += '\n'
+                    if char == 'd':
+                        formatted_details += 'Downloaded: ' + self.Downloaded
+                        formatted_details += '\n'
+                Possible_formats.remove(char)
         return name_type, formatted_details
