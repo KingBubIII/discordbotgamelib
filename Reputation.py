@@ -80,7 +80,9 @@ async def update_lib(ctx):
         
         #gets the current sheet to be compared to tell if new games needed to be added
         current_sheet = wks.get_all_values()
+
         for game in undicted_game_info:
+            #makes dictionary for game to easily access information
             game_info_dict = ast.literal_eval(game)
             if 'hours_forever' in game_info_dict:
                 useful_game_info = [member_name, game_info_dict['name'], game_info_dict['hours_forever'], game_info_dict['appid'], 'https://store.steampowered.com/app/'+str(game_info_dict['appid']), 'TBD', 'no', 'none',]
@@ -101,7 +103,7 @@ async def update_lib(ctx):
                 wks.append_row(useful_game_info,'RAW')
         await ctx.send("```Your library has been updated```")
     else:
-        await ctx.send("```I do not have a Steam ID for you, please go create one with the 'steamID' command```")
+        await ctx.send("```I do not have a Steam ID for you, please go input one with the 'steamID' command```")
 
 @discord_client.command()
 async def download(ctx, GameIndex):
@@ -215,7 +217,8 @@ async def readLib(ctx, user_mention, formatting=None):
                         if embeded_game_count%5 == 0 or num_of_games - embeded_game_count == 0:
                             library_embeds.append(LibraryEmbed)
                             LibraryEmbed = discord.Embed(title = user_mention + "'s library", description = "Maximum of 5 games per page." , color = discord.Color.orange())
-            await ctx.send(embed=library_embeds[0])
+            test = await ctx.send(embed=library_embeds[0])
+            await test.add_reaction(':caleebastan:')
     
 #discord_client.loop.create_task(update_libs())
 discord_client.run(TOKEN)
