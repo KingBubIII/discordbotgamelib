@@ -218,7 +218,7 @@ async def readLib(ctx, user_mention, formatting=None):
                             library_embeds.append(LibraryEmbed)
                             LibraryEmbed = discord.Embed(title = user_mention + "'s library", description = "Maximum of 5 games per page." , color = discord.Color.orange())
             test = await ctx.send(embed=library_embeds[0])
-            await test.add_reaction(':caleebastan:')
+            await test.add_reaction(':fast_forward:')
     
 #discord_client.loop.create_task(update_libs())
 discord_client.run(TOKEN)
