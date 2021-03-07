@@ -1,2 +1,0 @@
-
-{"appid":107410,"name":"Arma 3","logo":"https://cdn.akamai.steamstatic.com/steam/apps/107410/capsule_184x69.jpg","friendlyURL":107410,"availStatLinks":{"achievements":True,"global_achievements":True,"stats":False,"gcpd":False,"leaderboards":True,"global_leaderboards":True},"hours":"2.7","hours_forever":"3,021","last_played":1614367484}
