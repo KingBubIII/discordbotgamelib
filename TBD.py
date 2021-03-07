@@ -32,6 +32,10 @@ discord_client = commands.Bot(command_prefix=prefix)
 #removing default help command
 discord_client.remove_command('help')
 
+InitialReacts = ['\u23EA', '\u23E9']
+
+PageCount = 0
+
 #Setting the help command to be what the bot is playing 
 @discord_client.event
 async def on_ready():
@@ -39,9 +43,10 @@ async def on_ready():
     await discord_client.change_presence(activity=discord.Activity(type=discord.ActivityType.playing, name=prefix + "help"))
 
 @discord_client.command()
-async def update_lib(ctx):
+async def update_lib(ctx, member_name):
     
-    member_name = ctx.author.mention
+    member_name = str(member_name).replace("!","")
+    #member_name = ctx.author.mention
     # opens sheet that contains info for steam library access
     wks = wb.get_worksheet(1)
 
@@ -93,7 +98,7 @@ async def update_lib(ctx):
             row_count = 1
             
             for row in current_sheet:
-                if row[:2] == useful_game_info[:2]:
+                if row[:3] == useful_game_info[:3]:
                     wks.update_cell(row_count, 3, useful_game_info[2])
                 row_count+=1
             for row in current_sheet:
@@ -112,6 +117,7 @@ async def download(ctx, GameIndex):
 @discord_client.command()
 async def steamID(ctx, input_id):
     member_name = ctx.author.mention
+    member_name = str(member_name).replace("!","")
     #await ctx.send(member_name)
     wks = wb.get_worksheet(1) #open second sheet
 
@@ -161,6 +167,7 @@ async def echo(ctx, *, msg='echo'):
     
 @discord_client.command()
 async def readLib(ctx, user_mention, formatting=None):
+    response = None
     #creates empty list to hold all the embeds created to be accessed by the user in discord
     library_embeds = []
     #open first sheet
@@ -196,7 +203,7 @@ async def readLib(ctx, user_mention, formatting=None):
                         library_embeds.append(LibraryEmbed)
                         #creates new blank embed so it can be added to again
                         LibraryEmbed = discord.Embed(title = user_mention + "'s library", description = "Maximum of 5 games per page." , color = discord.Color.orange())
-        await ctx.send(embed=library_embeds[0]) #len(library_embeds)-1])
+        response = await ctx.send(embed=library_embeds[0]) #len(library_embeds)-1])
     
     elif formatting[0] == '-':
         validQuery = True
@@ -217,8 +224,24 @@ async def readLib(ctx, user_mention, formatting=None):
                         if embeded_game_count%5 == 0 or num_of_games - embeded_game_count == 0:
                             library_embeds.append(LibraryEmbed)
                             LibraryEmbed = discord.Embed(title = user_mention + "'s library", description = "Maximum of 5 games per page." , color = discord.Color.orange())
-            test = await ctx.send(embed=library_embeds[0])
-            await test.add_reaction(':fast_forward:')
+            response = await ctx.send(embed=library_embeds[PageCount])
+    
+    for emoji in InitialReacts:
+        await response.add_reaction(emoji)
+
+    @discord_client.event
+    async def on_reaction_add(reaction, user):
+        if user != discord_client.user:
+            if reaction.emoji == InitialReacts[1]:
+                await reaction.message.delete()
+                global PageCount
+                PageCount += 1
+                response = await ctx.send(embed=library_embeds[PageCount])
+
+                for emoji in InitialReacts:
+                    await response.add_reaction(emoji)
+
+
     
 #discord_client.loop.create_task(update_libs())
 discord_client.run(TOKEN)
