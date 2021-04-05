@@ -200,7 +200,7 @@ async def readLib(ctx, user_mention, formatting=None):
     LibraryEmbed = discord.Embed(title = user_mention + "'s library", description = "Maximum of 5 games per page." , color = discord.Color.orange())
     #creates variable to check how many games the program has done to know when to stop looking
     embeded_game_count = 0
-
+    
     #defaults to just the downloaded format option 
     if formatting == None:
         #looks at each row of the whole sheet individually
