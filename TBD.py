@@ -90,25 +90,43 @@ async def update_lib(ctx, member_name):
             #makes dictionary for game to easily access information
             game_info_dict = ast.literal_eval(game)
             if 'hours_forever' in game_info_dict:
-                useful_game_info = [member_name, game_info_dict['name'], game_info_dict['hours_forever'], game_info_dict['appid'], 'https://store.steampowered.com/app/'+str(game_info_dict['appid']), 'TBD', 'no', 'none',]
+                useful_game_info = [member_name, game_info_dict['name'], game_info_dict['hours_forever'], game_info_dict['appid'], 'https://store.steampowered.com/app/'+str(game_info_dict['appid']), 'No', 'no', 'none',]
 
-            #find out if game is multiplayer and or other tags
-            #add tags to spreadsheet
-            #loops through each row in the games sheet to update and add new games to sheet
-            row_count = 1
+                steam_lib_link = useful_game_info[4]
             
-            for row in current_sheet:
-                if row[:3] == useful_game_info[:3]:
-                    wks.update_cell(row_count, 3, useful_game_info[2])
-                row_count+=1
-            for row in current_sheet:
-                del row[2:]
-                row = list(set(row))
-            if not useful_game_info[:2] in current_sheet:
-                wks.append_row(useful_game_info,'RAW')
-        await ctx.send("```Your library has been updated```")
-    else:
-        await ctx.send("```I do not have a Steam ID for you, please go input one with the 'steamID' command```")
+                #opens connection to client website and downloads information
+                uClient = uReq(steam_lib_link)
+
+                #mloads html content into variable
+                page_html = uClient.read()
+                #closes connection to client website
+                uClient.close()
+
+                #parse the html document, making soup object
+                page_soup = soup(page_html, "html.parser")
+
+                json_script = page_soup.find_all("a", class_="app_tag")
+                
+                for index in range(len(json_script)):
+                    tag = json_script[index].next.replace('\n', ' ').replace('\r', '').replace('\t', '').replace(' ', '')
+                    if tag == "Multiplayer":
+                        useful_game_info[5] = "Yes"
+                        break
+                #loops through each row in the games sheet to update and add new games to sheet
+                row_count = 1
+                
+                for row in current_sheet:
+                    if row[:2] == useful_game_info[:2]:
+                        wks.update_cell(row_count, 3, useful_game_info[2])
+                    row_count+=1
+                for row in current_sheet:
+                    del row[2:]
+                    row = list(set(row))
+                if not useful_game_info[:2] in current_sheet:
+                    wks.append_row(useful_game_info,'RAW')
+            await ctx.send("```Your library has been updated```")
+        else:
+            await ctx.send("```I do not have a Steam ID for you, please go input one with the 'steamID' command```")
 
 @discord_client.command()
 async def download(ctx, GameIndex):
@@ -210,10 +228,10 @@ async def readLib(ctx, user_mention, formatting=None):
         
         for char in formatting[1::]:
             if not char in ['f','n','a','h','s','o','d']:
-                await ctx.send(f"""```Format type unknown+{repr(char)}```""")
+                await ctx.send(f"""```Format type unknown {repr(char)}```""")
                 validQuery = False
 
-        if validQuery == True:            
+        if validQuery == True:
             for row in current_sheet:
                 if not row == current_sheet[0]:
                     item = Game(row)
@@ -226,20 +244,28 @@ async def readLib(ctx, user_mention, formatting=None):
                             LibraryEmbed = discord.Embed(title = user_mention + "'s library", description = "Maximum of 5 games per page." , color = discord.Color.orange())
             response = await ctx.send(embed=library_embeds[PageCount])
     
-    for emoji in InitialReacts:
-        await response.add_reaction(emoji)
+        for emoji in InitialReacts:
+            await response.add_reaction(emoji)
 
     @discord_client.event
     async def on_reaction_add(reaction, user):
         if user != discord_client.user:
+            global PageCount
+            
             if reaction.emoji == InitialReacts[1]:
                 await reaction.message.delete()
-                global PageCount
-                PageCount += 1
-                response = await ctx.send(embed=library_embeds[PageCount])
+                if not PageCount+1 > len(library_embeds):
+                    PageCount += 1
 
-                for emoji in InitialReacts:
-                    await response.add_reaction(emoji)
+            if reaction.emoji == InitialReacts[0]:
+                await reaction.message.delete()
+                if not PageCount-1 < 0:
+                    PageCount -= 1
+
+            response = await ctx.send(embed=library_embeds[PageCount])
+
+            for emoji in InitialReacts:
+                await response.add_reaction(emoji)
 
 
     
