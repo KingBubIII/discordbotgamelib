@@ -23,7 +23,7 @@ sheets_client = gspread.authorize(creds)
 wb = sheets_client.open('discord_bot_data')
 
 #discord bot token needed to run bot
-TOKEN = 'NTY3ODYxODM2MTAwMjcyMTI4.XLZsjA.4KVuZf1cb3HJ5-mWWmRqPbfCsVA'
+TOKEN = str(open("token.txt").read())
 
 #creating client instance and identifying prefix for commands 
 prefix = '>>'
