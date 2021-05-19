@@ -23,7 +23,7 @@ sheets_client = gspread.authorize(creds)
 wb = sheets_client.open('discord_bot_data')
 
 #discord bot token needed to run bot
-TOKEN = 'NTY3ODYxODM2MTAwMjcyMTI4.XLZ4Dw.tP4m4pQXGUy9EBDssa2JwLyiM2Y'
+TOKEN = 'NTY3ODYxODM2MTAwMjcyMTI4.XLZsjA.4KVuZf1cb3HJ5-mWWmRqPbfCsVA'
 
 #creating client instance and identifying prefix for commands 
 prefix = '>>'
@@ -41,6 +41,10 @@ PageCount = 0
 async def on_ready():
     print('Ready set let\'s go')
     await discord_client.change_presence(activity=discord.Activity(type=discord.ActivityType.playing, name=prefix + "help"))
+
+@discord_client.command
+async def search(ctx, search_query):
+    pass
 
 @discord_client.command()
 async def update_lib(ctx, member_name):
@@ -126,14 +130,14 @@ async def update_lib(ctx, member_name):
                     wks.append_row(useful_game_info,'RAW')
             await ctx.send("```Your library has been updated```")
         else:
-            await ctx.send("```I do not have a Steam ID for you, please go input one with the 'steamID' command```")
+            await ctx.send("```I do not have a Steam ID for you, please go input one with the 'steamid' command```")
 
 @discord_client.command()
 async def download(ctx, GameIndex):
     pass
 
 @discord_client.command()
-async def steamID(ctx, input_id):
+async def steamid(ctx, input_id):
     member_name = ctx.author.mention
     member_name = str(member_name).replace("!","")
     #await ctx.send(member_name)
@@ -160,22 +164,17 @@ async def help(ctx, commandName=None):
         helpEmbed.add_field(name = 'Command Prefix: ', value =  'put this, "' + prefix + '", in front of specified command name to be able to call the command', inline=False)
         helpEmbed.add_field(name = 'help', value = 'One optional arguement: commandName\nSpecify a command\'s name to get more details on that command', inline=False)
         helpEmbed.add_field(name = 'echo', value = 'Repeats what you say in a fancy code block', inline=False)
-        helpEmbed.add_field(name = 'readLib', value = 'Allows you and others to read the games you have installed.', inline=False)
-        helpEmbed.add_field(name = 'delItem', value = 'Deletes specified item from library', inline=False)
-        helpEmbed.add_field(name = 'steamID', value = 'Either creates new profile for member or updates exsisting Steam ID number', inline=False)
+        helpEmbed.add_field(name = 'readlib', value = 'Allows you and others to read the games you have installed.', inline=False)
+        helpEmbed.add_field(name = 'steamid', value = 'Either creates new profile for member or updates exsisting Steam ID number', inline=False)
 
 
     elif commandName == 'echo':
         helpEmbed = discord.Embed(title = 'In depth help for ', color = discord.Color.orange())
         helpEmbed.add_field(name = commandName, value = 'Repeats what you say in a fancy code block\n\nOne optional arguement: message\n\nIf the arguement is not filled then the message defaults to \'echo\'\n\nThe arguement can be as long as you want including spaces\n\n Default Example: >>echo\nDefault Ouptut: echo\n\nFilled Argument Example: >>echo This command is useless \nFilled arguement Output: This command is useless')
 
-    elif commandName == 'addItem':
+    elif commandName == 'readlib':
         helpEmbed = discord.Embed(title = 'In depth help for ', color = discord.Color.orange())
-        helpEmbed.add_field(name = commandName, value = 'Adds a game to your library for you and others to look at\n\nFour needed arguements: Game\'s name, Game\'s nickname, Launcher, and whether you can play with friends or not(yes or no)\n\nUse dashes where you want spaces in names, these will turn into spaces in your libray. However use spaces for distinguishing arguements\n\nExample: >>addItem The-Elder-Scrolls-V:-Skyrim Skyrim Steam Yes \nOuptut: Successfully added')
-
-    elif commandName == 'readLib':
-        helpEmbed = discord.Embed(title = 'In depth help for ', color = discord.Color.orange())
-        helpEmbed.add_field(name = commandName, value = 'Allows you and others to read the games you have installed.\n\nThis command has one manditory command: username and one optional command: formatting\nSpecify your username or another person\'s in the server to read the users library of games\nThe formatting command allows your to read more or less details of the library of the user you specify. To do this you must put a \'-\' then put any number of and combination of the letters  \'f\' \'n\' \'a\' \'h\' \'s\' \'o\' \'d\'.\n\'f\': will make the full game\'s name part of the bot\'s output of the library.\n\'n\': will make the game\'s nickname part of the bot\'s output of the library.\n')
+        helpEmbed.add_field(name = commandName, value = 'Allows you and others to read the games you have installed.\n\nThis command has one manditory command: username and one optional command: formatting\nSpecify your username or another person\'s in the server to read the users library of games\nThe formatting command allows your to read more or less details of the library of the user you specify. To do this you must put a \'-\' then put any number of and combination of the letters  \'f\' \'n\' \'a\' \'h\' \'s\' \'o\' \'d\'.\n\'f\': Displays full game\'s name\n\'n\': Displays game\'s nickname \n\'a\': stands for all; It will display all avaiable info options \n\'h\': stands for hours; Displays the number of hours you\'ve put into the game \n\'s\': stands for link; Displays the game\'s Steam link \n\'o\': stands for online; Displays weather or not the game is multiplayer \n\'d\': stands for downloaded; Displays weather or not you have told me you have the game downloaded')
 
     await ctx.send(embed=helpEmbed)
 
@@ -184,7 +183,7 @@ async def echo(ctx, *, msg='echo'):
     await ctx.send(f"""```{msg}```""")
     
 @discord_client.command()
-async def readLib(ctx, user_mention, formatting=None):
+async def readlib(ctx, user_mention, formatting=None):
     response = None
     #creates empty list to hold all the embeds created to be accessed by the user in discord
     library_embeds = []
@@ -222,6 +221,9 @@ async def readLib(ctx, user_mention, formatting=None):
                         #creates new blank embed so it can be added to again
                         LibraryEmbed = discord.Embed(title = user_mention + "'s library", description = "Maximum of 5 games per page." , color = discord.Color.orange())
         response = await ctx.send(embed=library_embeds[0]) #len(library_embeds)-1])
+        
+        for emoji in InitialReacts:
+            await response.add_reaction(emoji)
     
     elif formatting[0] == '-':
         validQuery = True
