@@ -14,7 +14,7 @@ scope = [
     "https://www.googleapis.com/auth/drive.file","https://www.googleapis.com/auth/drive"]
 
 #credentials in list
-creds = ServiceAccountCredentials.from_json_keyfile_name("reputation_creds.json", scope)
+creds = ServiceAccountCredentials.from_json_keyfile_name("creds.json", scope)
 
 #passes in all credentials to make sure changes/ viewing are allowed
 sheets_client = gspread.authorize(creds)
@@ -31,10 +31,6 @@ discord_client = commands.Bot(command_prefix=prefix)
 #discord_client.case_insensitive = True
 #removing default help command
 discord_client.remove_command('help')
-
-InitialReacts = ['\u23EA', '\u23E9']
-
-PageCount = 0
 
 #Setting the help command to be what the bot is playing 
 @discord_client.event
@@ -184,21 +180,13 @@ async def echo(ctx, *, msg='echo'):
     
 @discord_client.command()
 async def readlib(ctx, user_mention, formatting=None):
-    response = None
-    #creates empty list to hold all the embeds created to be accessed by the user in discord
-    library_embeds = []
+    UsersLibrary = Library(user_mention)
     #open first sheet
     wks = wb.get_worksheet(0)
     #gets the whole game data worksheet as a single variable to be accessable with one read 
     current_sheet = wks.get_all_values()
     #gets the number of games the user has for the program to know when to stop looking for more games
     num_of_games = len(wks.findall(user_mention))
-    #makes the specified user's id useable in the code
-    user_mention = user_mention.replace('!', '')
-    #creates an empty embed to be added to later as the infromation is parsed
-    LibraryEmbed = discord.Embed(title = user_mention + "'s library", description = "Maximum of 5 games per page." , color = discord.Color.orange())
-    #creates variable to check how many games the program has done to know when to stop looking
-    embeded_game_count = 0
     
     #defaults to just the downloaded format option 
     if formatting == None:
@@ -209,21 +197,14 @@ async def readlib(ctx, user_mention, formatting=None):
                 #creates an instance of the game class to make information more readable and accessable
                 item = Game(row)
                 #makes sure the owner of the current game instace is the user that was specified in the command
-                if item.Owner == user_mention:
-                    #increments the amount of games the specified person has to be shown
-                    embeded_game_count += 1
+                if item.Owner == UsersLibrary.User:
                     #adds a field per game to the embed with the downloaded status
-                    LibraryEmbed.add_field(name=item.FullName, value='Downloaded: ' + item.Downloaded, inline=False)
+                    UsersLibrary.Page.add_field(name=item.FullName, value='Downloaded: ' + item.Downloaded, inline=False)
+                    
+                    UsersLibrary.GameCount += 1
                     # checks to make sure there is only 5 games per page of the library so it doesnt get overwhelming and the embed cant hold the whole library
-                    if embeded_game_count%5 == 0 or num_of_games - embeded_game_count == 0:
-                        #adds the current embed to the embed list
-                        library_embeds.append(LibraryEmbed)
-                        #creates new blank embed so it can be added to again
-                        LibraryEmbed = discord.Embed(title = user_mention + "'s library", description = "Maximum of 5 games per page." , color = discord.Color.orange())
-        response = await ctx.send(embed=library_embeds[0]) #len(library_embeds)-1])
-        
-        for emoji in InitialReacts:
-            await response.add_reaction(emoji)
+                    if UsersLibrary.GameCount%UsersLibrary.MaxGamesOnPage == 0 or num_of_games - UsersLibrary.GameCount == 0:
+                        UsersLibrary.AddPage()
     
     elif formatting[0] == '-':
         validQuery = True
@@ -237,37 +218,32 @@ async def readlib(ctx, user_mention, formatting=None):
             for row in current_sheet:
                 if not row == current_sheet[0]:
                     item = Game(row)
-                    if item.Owner == user_mention:
+                    if item.Owner == UsersLibrary.User:
                         game_details = item.Format_Details(formatting)
-                        embeded_game_count += 1
-                        LibraryEmbed.add_field(name=game_details[0], value=game_details[1], inline=False)
-                        if embeded_game_count%5 == 0 or num_of_games - embeded_game_count == 0:
-                            library_embeds.append(LibraryEmbed)
-                            LibraryEmbed = discord.Embed(title = user_mention + "'s library", description = "Maximum of 5 games per page." , color = discord.Color.orange())
-            response = await ctx.send(embed=library_embeds[PageCount])
-    
-        for emoji in InitialReacts:
-            await response.add_reaction(emoji)
+                        UsersLibrary.Page.add_field(name=game_details[0], value=game_details[1], inline=False)
+                        UsersLibrary.GameCount += 1
+                        if UsersLibrary.GameCount%UsersLibrary.MaxGamesOnPage == 0 or num_of_games - UsersLibrary.GameCount == 0:
+                            UsersLibrary.AddPage()
+                            
+    response = await ctx.send(embed=UsersLibrary.CurrentPage())
+    await UsersLibrary.React(response)
 
     @discord_client.event
     async def on_reaction_add(reaction, user):
         if user != discord_client.user:
-            global PageCount
             
-            if reaction.emoji == InitialReacts[1]:
+
+            if reaction.emoji == UsersLibrary.InitialReacts[1]:
                 await reaction.message.delete()
-                if not PageCount+1 > len(library_embeds):
-                    PageCount += 1
+                UsersLibrary.NextPage()
 
-            if reaction.emoji == InitialReacts[0]:
+            if reaction.emoji == UsersLibrary.InitialReacts[0]:
                 await reaction.message.delete()
-                if not PageCount-1 < 0:
-                    PageCount -= 1
-
-            response = await ctx.send(embed=library_embeds[PageCount])
-
-            for emoji in InitialReacts:
-                await response.add_reaction(emoji)
+                UsersLibrary.PreviousPage()
+                
+            await ctx.send(UsersLibrary.PageNumber)
+            response = await ctx.send(embed=UsersLibrary.CurrentPage())
+            await UsersLibrary.React(response)
 
 
     

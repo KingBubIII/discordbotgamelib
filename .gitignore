@@ -3,3 +3,4 @@ token.txt
 __pycache__/
 test.txt
 logictesting.py
+creds.json

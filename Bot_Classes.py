@@ -1,3 +1,13 @@
+import discord
+from discord.ext import commands
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
+from urllib.request import urlopen as uReq
+import asyncio
+import ast
+from bs4 import BeautifulSoup as soup
+from Bot_Classes import *
+
 class Game:
     def __init__(self, Data : list):
         self.Owner = str(Data[0])
@@ -34,3 +44,38 @@ class Game:
                     formatted_details += '\n'
                 Possible_formats.remove(char)
         return name_type, formatted_details
+
+class Library:
+    def __init__(self, User):
+        self.User = User.replace('!', '')
+        self.PageNumber = 0
+        self.Embeds = []
+        self.MaxGamesOnPage = 5
+        #creates variable to check how many games the program has done to know when to stop looking
+        self.GameCount = len(self.Embeds)
+        #creates a copy of the basic page
+        self.Page = self.NewEmbed()
+        self.InitialReacts = ['\u23EA', '\u23E9']
+
+    def AddPage(self):
+        #adds the current page to the embed list
+        self.Embeds.append(self.Page)
+        #Replace page with basic page again
+        self.Page = self.NewEmbed()
+
+    def NewEmbed(self):
+        #Creates variable used to reset the page variable after adding it to the Library list
+        return discord.Embed(title = self.User + "'s library", description = "Maximum of 5 games per page." , color = discord.Color.orange())
+
+    def NextPage(self):
+        self.PageNumber += 1
+
+    def PreviousPage(self):
+        self.PageNumber -= 1
+    
+    def CurrentPage(self):
+        return self.Embeds[self.PageNumber]
+
+    async def React(self, response):
+        for emoji in self.InitialReacts:
+            await response.add_reaction(emoji)
