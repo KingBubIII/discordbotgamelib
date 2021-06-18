@@ -166,11 +166,29 @@ async def help(ctx, commandName=None):
 
     elif commandName == 'echo':
         helpEmbed = discord.Embed(title = 'In depth help for ', color = discord.Color.orange())
-        helpEmbed.add_field(name = commandName, value = 'Repeats what you say in a fancy code block\n\nOne optional arguement: message\n\nIf the arguement is not filled then the message defaults to \'echo\'\n\nThe arguement can be as long as you want including spaces\n\n Default Example: >>echo\nDefault Ouptut: echo\n\nFilled Argument Example: >>echo This command is useless \nFilled arguement Output: This command is useless')
+        helpEmbed.add_field(name = commandName, value = 'Repeats what you say in a fancy code block\n\n\
+                                                        One optional arguement: message\n\n\
+                                                        If the arguement is not filled then the message defaults to \'echo\'\n\n\
+                                                        The arguement can be as long as you want including spaces\n\n \
+                                                        Default Example: >>echo\nDefault Ouptut: echo\n\n\
+                                                        Filled argument Example: >>echo This command is useless \n\
+                                                        Filled arguement Output: This command is useless')
 
     elif commandName == 'readlib':
         helpEmbed = discord.Embed(title = 'In depth help for ', color = discord.Color.orange())
-        helpEmbed.add_field(name = commandName, value = 'Allows you and others to read the games you have installed.\n\nThis command has one manditory command: username and one optional command: formatting\nSpecify your username or another person\'s in the server to read the users library of games\nThe formatting command allows your to read more or less details of the library of the user you specify. To do this you must put a \'-\' then put any number of and combination of the letters  \'f\' \'n\' \'a\' \'h\' \'s\' \'o\' \'d\'.\n\'f\': Displays full game\'s name\n\'n\': Displays game\'s nickname \n\'a\': stands for all; It will display all avaiable info options \n\'h\': stands for hours; Displays the number of hours you\'ve put into the game \n\'s\': stands for link; Displays the game\'s Steam link \n\'o\': stands for online; Displays weather or not the game is multiplayer \n\'d\': stands for downloaded; Displays weather or not you have told me you have the game downloaded')
+        helpEmbed.add_field(name = commandName, value = 'Allows you and others to read the games you have installed.\n\n\
+                                                        This command has one manditory command: username and one optional command: formatting\n\
+                                                        Specify your username or another person\'s in the server to read the users library of games\n\
+                                                        The formatting command allows your to read more or less details of the library of the user you specify. \
+                                                        To do this you must put a \'-\' then put any number of and combination of the letters  \
+                                                        \'f\' \'n\' \'a\' \'h\' \'s\' \'o\' \'d\'.\n\
+                                                        \'f\': Displays full game\'s name\n\
+                                                        \'n\': Displays game\'s nickname \n\
+                                                        \'a\': stands for all; It will display all avaiable info options \n\
+                                                        \'h\': stands for hours; Displays the number of hours you\'ve put into the game \n\
+                                                        \'s\': stands for link; Displays the game\'s Steam link \n\
+                                                        \'o\': stands for online; Displays weather or not the game is multiplayer \n\
+                                                        \'d\': stands for downloaded; Displays weather or not you have told me you have the game downloaded')
 
     await ctx.send(embed=helpEmbed)
 
@@ -232,7 +250,6 @@ async def readlib(ctx, user_mention, formatting=None):
     async def on_reaction_add(reaction, user):
         if user != discord_client.user:
             
-
             if reaction.emoji == UsersLibrary.InitialReacts[1]:
                 await reaction.message.delete()
                 UsersLibrary.NextPage()
@@ -244,8 +261,6 @@ async def readlib(ctx, user_mention, formatting=None):
             await ctx.send(UsersLibrary.PageNumber)
             response = await ctx.send(embed=UsersLibrary.CurrentPage())
             await UsersLibrary.React(response)
-
-
     
 #discord_client.loop.create_task(update_libs())
 discord_client.run(TOKEN)
