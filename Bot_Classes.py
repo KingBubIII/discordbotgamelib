@@ -49,6 +49,7 @@ class Library:
     def __init__(self, User):
         self.User = User.replace('!', '')
         self.PageNumber = 0
+        self.data_array = []
         self.Embeds = []
         self.MaxGamesOnPage = 5
         #creates variable to check how many games the program has done to know when to stop looking

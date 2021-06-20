@@ -195,17 +195,17 @@ async def help(ctx, commandName=None):
 @discord_client.command() 
 async def echo(ctx, *, msg='echo'):
     await ctx.send(f"""```{msg}```""")
-    
-@discord_client.command()
-async def readlib(ctx, user_mention, formatting=None):
-    UsersLibrary = Library(user_mention)
+
+
+async def sheet_data_to_array(libclass, formatting):
     #open first sheet
     wks = wb.get_worksheet(0)
     #gets the whole game data worksheet as a single variable to be accessable with one read 
     current_sheet = wks.get_all_values()
     #gets the number of games the user has for the program to know when to stop looking for more games
-    num_of_games = len(wks.findall(user_mention))
-    
+    num_of_games = len(wks.findall(libclass.User))
+
+
     #defaults to just the downloaded format option 
     if formatting == None:
         #looks at each row of the whole sheet individually
@@ -215,33 +215,40 @@ async def readlib(ctx, user_mention, formatting=None):
                 #creates an instance of the game class to make information more readable and accessable
                 item = Game(row)
                 #makes sure the owner of the current game instace is the user that was specified in the command
-                if item.Owner == UsersLibrary.User:
+                if item.Owner == libclass.User:
                     #adds a field per game to the embed with the downloaded status
-                    UsersLibrary.Page.add_field(name=item.FullName, value='Downloaded: ' + item.Downloaded, inline=False)
-                    
-                    UsersLibrary.GameCount += 1
-                    # checks to make sure there is only 5 games per page of the library so it doesnt get overwhelming and the embed cant hold the whole library
-                    if UsersLibrary.GameCount%UsersLibrary.MaxGamesOnPage == 0 or num_of_games - UsersLibrary.GameCount == 0:
-                        UsersLibrary.AddPage()
-    
+                    libclass.data_array.append((item.FullName,'Downloaded: ' + item.Downloaded))
+
     elif formatting[0] == '-':
         validQuery = True
         
         for char in formatting[1::]:
             if not char in ['f','n','a','h','s','o','d']:
-                await ctx.send(f"""```Format type unknown {repr(char)}```""")
-                validQuery = False
+                return False
 
         if validQuery == True:
             for row in current_sheet:
                 if not row == current_sheet[0]:
                     item = Game(row)
-                    if item.Owner == UsersLibrary.User:
+                    if item.Owner == libclass.User:
                         game_details = item.Format_Details(formatting)
-                        UsersLibrary.Page.add_field(name=game_details[0], value=game_details[1], inline=False)
-                        UsersLibrary.GameCount += 1
-                        if UsersLibrary.GameCount%UsersLibrary.MaxGamesOnPage == 0 or num_of_games - UsersLibrary.GameCount == 0:
-                            UsersLibrary.AddPage()
+                        libclass.data_array.append((game_details[0],game_details[1]))
+
+async def array_to_embed(libclass):
+    for count, game in enumerate(libclass.data_array):
+        #adds a field per game to the embed with the downloaded status
+        libclass.Page.add_field(name=game[0], value=game[1], inline=False)
+        # checks to make sure there is only 5 games per page of the library so it doesnt get overwhelming and the embed cant hold the whole library
+        if (count%libclass.MaxGamesOnPage == 0 and count > 0) or count - len(libclass.data_array) == 0:
+            libclass.AddPage()
+
+@discord_client.command()
+async def readlib(ctx, user_mention, formatting=None):
+    UsersLibrary = Library(user_mention)
+
+    await sheet_data_to_array(UsersLibrary, formatting)
+
+    await array_to_embed(UsersLibrary)
                             
     response = await ctx.send(embed=UsersLibrary.CurrentPage())
     await UsersLibrary.React(response)
@@ -258,7 +265,6 @@ async def readlib(ctx, user_mention, formatting=None):
                 await reaction.message.delete()
                 UsersLibrary.PreviousPage()
                 
-            await ctx.send(UsersLibrary.PageNumber)
             response = await ctx.send(embed=UsersLibrary.CurrentPage())
             await UsersLibrary.React(response)
     
