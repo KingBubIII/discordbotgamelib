@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
 import gspread
+from oauth2client.crypt import AppIdentityError
 from oauth2client.service_account import ServiceAccountCredentials
 from urllib.request import urlopen as uReq
 import asyncio
@@ -197,7 +198,7 @@ async def echo(ctx, *, msg='echo'):
     await ctx.send(f"""```{msg}```""")
 
 
-async def sheet_data_to_array(libclass, formatting):
+async def sheet_data_to_array(libclass, formatting=None):
     #open first sheet
     wks = wb.get_worksheet(0)
     #gets the whole game data worksheet as a single variable to be accessable with one read 
@@ -268,5 +269,58 @@ async def readlib(ctx, user_mention, formatting=None):
             response = await ctx.send(embed=UsersLibrary.CurrentPage())
             await UsersLibrary.React(response)
     
+@discord_client.command()
+async def compare(ctx, person1, person2, formatting=None):
+    person1_lib = Library(person1)
+    person2_lib = Library(person2)
+
+    await sheet_data_to_array(person1_lib, formatting)
+    await sheet_data_to_array(person2_lib, formatting)
+
+    person1_games = [item[0] for item in person1_lib.data_array]
+    person2_games = [item[0] for item in person2_lib.data_array]
+
+    common_games = list(set(person1_games).intersection(person2_games))
+
+    games_with_embed_data = []
+
+    for count in range(len(common_games)):
+        temp = [common_games[count],""]
+        for item in person1_lib.data_array:
+            if common_games[count] == item[0]:
+                temp[1] += item[1] + "\n"
+
+        for item in person2_lib.data_array:
+            if common_games[count] == item[0]:
+                temp[1] += item[1] + "\n"
+        games_with_embed_data.append(temp)
+    
+    
+    Common_lib = Library(data= games_with_embed_data)
+    
+    await array_to_embed(Common_lib)
+                            
+    response = await ctx.send(embed=Common_lib.CurrentPage())
+    await Common_lib.React(response)
+
+    @discord_client.event
+    async def on_reaction_add(reaction, user):
+        if user != discord_client.user:
+            
+            if reaction.emoji == Common_lib.InitialReacts[1]:
+                await reaction.message.delete()
+                Common_lib.NextPage()
+
+            if reaction.emoji == Common_lib.InitialReacts[0]:
+                await reaction.message.delete()
+                Common_lib.PreviousPage()
+                
+            response = await ctx.send(embed=Common_lib.CurrentPage())
+            await Common_lib.React(response)
+
+    #['Unturned', 'Stormbound', 'Halo: The Master Chief Collection', 'BATTLETECH', "Don't Starve Together", 'Raft', "Tom Clancy's Rainbow Six Siege", 
+    # 'Wallpaper Engine', 'Barotrauma', 'MechWarrior Online', 'Bloons TD 6', 'Kingdom: Classic', 'Armello', 'Sins of a Solar Empire: Rebellion', 
+    # 'Tabletop Simulator', 'Crossout', 'Cyberpunk 2077']
+
 #discord_client.loop.create_task(update_libs())
 discord_client.run(TOKEN)

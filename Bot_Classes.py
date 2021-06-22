@@ -41,15 +41,19 @@ class Game:
                         formatted_details += 'Online: ' + self.Multiplayer
                     if char == 'd':
                         formatted_details += 'Downloaded: ' + self.Downloaded
-                    formatted_details += '\n'
+                    if not char == formatting[-1]:
+                        formatted_details += '\n'
                 Possible_formats.remove(char)
         return name_type, formatted_details
 
 class Library:
-    def __init__(self, User):
+    def __init__(self, User="Common Games", data=None):
         self.User = User.replace('!', '')
         self.PageNumber = 0
-        self.data_array = []
+        if data == None:
+            self.data_array = []
+        else:
+            self.data_array = data
         self.Embeds = []
         self.MaxGamesOnPage = 5
         #creates variable to check how many games the program has done to know when to stop looking
@@ -66,7 +70,10 @@ class Library:
 
     def NewEmbed(self):
         #Creates variable used to reset the page variable after adding it to the Library list
-        return discord.Embed(title = self.User + "'s library", description = "Maximum of 5 games per page." , color = discord.Color.orange())
+        if self.User == "Common Games":
+            return discord.Embed(title = self.User, description = "Maximum of 5 games per page." , color = discord.Color.blue())
+        else:
+            return discord.Embed(title = self.User + "'s library", description = "Maximum of 5 games per page." , color = discord.Color.orange())
 
     def NextPage(self):
         self.PageNumber += 1
