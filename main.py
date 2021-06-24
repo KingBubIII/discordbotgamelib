@@ -125,9 +125,9 @@ async def update_lib(ctx, member_name):
                     row = list(set(row))
                 if not useful_game_info[:2] in current_sheet:
                     wks.append_row(useful_game_info,'RAW')
-            await ctx.send("```Your library has been updated```")
-        else:
-            await ctx.send("```I do not have a Steam ID for you, please go input one with the 'steamid' command```")
+            #await ctx.send("```I do not have a Steam ID for you, please go input one with the 'steamid' command```")
+            
+        await ctx.send("```Your library has been updated```")
 
 @discord_client.command()
 async def download(ctx, GameIndex):
