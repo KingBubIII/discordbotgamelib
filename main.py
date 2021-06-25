@@ -130,8 +130,22 @@ async def update_lib(ctx, member_name):
         await ctx.send("```Your library has been updated```")
 
 @discord_client.command()
-async def download(ctx, GameIndex):
-    pass
+async def download(ctx, download_query):
+    wks = wb.get_worksheet(0) #open first sheet
+
+    if type(download_query) == int:
+        #gets the row with game ids
+        id_list =  wks.col_values(4)
+
+        if download_query in id_list:
+            for row, id in enumerate(id_list):
+                if id == download_query:
+                    if ctx.author.mention == wks.cell(row+1,1).value:
+                        wks.update_cell(row+1,7,"Yes")
+                        game_name = wks.cell(row+1,2).value
+                        await ctx.send("```You have downloaded " + game_name + " ```")
+        else:
+            await ctx.send("```That ID does not match any game ID's I have```")
 
 @discord_client.command()
 async def steamid(ctx, input_id):
@@ -224,7 +238,7 @@ async def sheet_data_to_array(libclass, formatting=None):
         validQuery = True
         
         for char in formatting[1::]:
-            if not char in ['f','n','a','h','s','o','d']:
+            if not char in ['f','n','a','h','s','o','d','i']:
                 return False
 
         if validQuery == True:
@@ -250,7 +264,8 @@ async def readlib(ctx, user_mention, formatting=None):
     await sheet_data_to_array(UsersLibrary, formatting)
 
     await array_to_embed(UsersLibrary)
-                            
+    
+    print(UsersLibrary.PageNumber)
     response = await ctx.send(embed=UsersLibrary.CurrentPage())
     await UsersLibrary.React(response)
 

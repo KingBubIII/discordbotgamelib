@@ -20,7 +20,7 @@ class Game:
         self.Nickname = str(Data[7])
 
     def Format_Details(self, formatting):
-        Possible_formats = ['f','n','a','h','s','o','d']
+        Possible_formats = ['f','n','a','h','s','o','d','i']
         formatted_details = ''
         if 'n' in formatting:
             name_type = self.Nickname
@@ -41,6 +41,8 @@ class Game:
                         formatted_details += 'Online: ' + self.Multiplayer
                     if char == 'd':
                         formatted_details += 'Downloaded: ' + self.Downloaded
+                    if char == 'i':
+                        formatted_details += 'Steam ID: ' + self.SteamID
                     if not char == formatting[-1]:
                         formatted_details += '\n'
                 Possible_formats.remove(char)
