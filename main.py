@@ -133,19 +133,18 @@ async def update_lib(ctx, member_name):
 async def download(ctx, download_query):
     wks = wb.get_worksheet(0) #open first sheet
 
-    if type(download_query) == int:
-        #gets the row with game ids
-        id_list =  wks.col_values(4)
+    #gets the row with game ids
+    id_list =  wks.col_values(4)
 
-        if download_query in id_list:
-            for row, id in enumerate(id_list):
-                if id == download_query:
-                    if ctx.author.mention == wks.cell(row+1,1).value:
-                        wks.update_cell(row+1,7,"Yes")
-                        game_name = wks.cell(row+1,2).value
-                        await ctx.send("```You have downloaded " + game_name + " ```")
-        else:
-            await ctx.send("```That ID does not match any game ID's I have```")
+    if download_query in id_list:
+        for row, id in enumerate(id_list):
+            if id == download_query:
+                if ctx.author.mention == wks.cell(row+1,1).value:
+                    wks.update_cell(row+1,7,"Yes")
+                    game_name = wks.cell(row+1,2).value
+                    await ctx.send("```You have downloaded " + game_name + " ```")
+    else:
+        await ctx.send("```That ID does not match any game ID's I have```")
 
 @discord_client.command()
 async def steamid(ctx, input_id):
