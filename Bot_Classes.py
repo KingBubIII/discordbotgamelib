@@ -49,7 +49,7 @@ class Game:
         return name_type, formatted_details
 
 class Library:
-    def __init__(self, User="Common Games", data=None):
+    def __init__(self, User=None, data=None):
         self.User = User.replace('!', '')
         self.PageNumber = 0
         if data == None:
@@ -74,6 +74,8 @@ class Library:
         #Creates variable used to reset the page variable after adding it to the Library list
         if self.User == "Common Games":
             return discord.Embed(title = self.User, description = "Maximum of 5 games per page." , color = discord.Color.blue())
+        elif self.User == "results":
+            return discord.Embed(title = "Search " + self.User, description = "Maximum of 5 games per page." , color = discord.Color.green())
         else:
             return discord.Embed(title = self.User + "'s library", description = "Maximum of 5 games per page." , color = discord.Color.orange())
 

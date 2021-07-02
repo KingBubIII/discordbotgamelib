@@ -1,3 +1,4 @@
+from typing import List
 import discord
 from discord.ext import commands
 import gspread
@@ -7,6 +8,7 @@ from urllib.request import urlopen as uReq
 import asyncio
 import ast
 from bs4 import BeautifulSoup as soup
+from six import string_types
 from Bot_Classes import *
 
 #things to get setup with google, being authorized and whatnot
@@ -39,9 +41,47 @@ async def on_ready():
     print('Ready set let\'s go')
     await discord_client.change_presence(activity=discord.Activity(type=discord.ActivityType.playing, name=prefix + "help"))
 
-@discord_client.command
-async def search(ctx, search_query):
-    pass
+@discord_client.command()
+async def search(ctx, search_query, user_query=None):
+    wks = wb.get_worksheet(0)
+
+    wks_list = wks.get_all_values()
+
+    results_data = []
+    for game in wks_list:
+        #print(ctx.author.mention)
+        if user_query == None:
+            if ctx.author.mention.replace("!","") == game[0]:
+                if search_query in game[1].lower():
+                    results_data.append(game[1])
+        else:
+            if user_query.replace("!","") == game[0]:
+                if search_query in game[1].lower():
+                    results_data.append(game[1])
+
+
+    #print(results_data)
+    results_lib = Library(User="results",data=results_data)
+
+    await array_to_embed(results_lib)
+
+    response = await ctx.send(embed=results_lib.CurrentPage())
+    await results_lib.React(response)
+
+    @discord_client.event
+    async def on_reaction_add(reaction, user):
+        if user != discord_client.user:
+            
+            if reaction.emoji == results_lib.InitialReacts[1]:
+                await reaction.message.delete()
+                results_lib.NextPage()
+
+            if reaction.emoji == results_lib.InitialReacts[0]:
+                await reaction.message.delete()
+                results_lib.PreviousPage()
+                
+            response = await ctx.send(embed=results_lib.CurrentPage())
+            await results_lib.React(response)
 
 @discord_client.command()
 async def update_lib(ctx, member_name):
@@ -249,12 +289,23 @@ async def sheet_data_to_array(libclass, formatting=None):
                         libclass.data_array.append((game_details[0],game_details[1]))
 
 async def array_to_embed(libclass):
-    for count, game in enumerate(libclass.data_array):
-        #adds a field per game to the embed with the downloaded status
-        libclass.Page.add_field(name=game[0], value=game[1], inline=False)
-        # checks to make sure there is only 5 games per page of the library so it doesnt get overwhelming and the embed cant hold the whole library
-        if (count%libclass.MaxGamesOnPage == 0 and count > 0) or count - len(libclass.data_array) == 0:
-            libclass.AddPage()
+    if type(libclass.data_array[0]) == list:
+        for count, game in enumerate(libclass.data_array):
+            #adds a field per game to the embed with the downloaded status
+            libclass.Page.add_field(name=game[0], value=game[1], inline=False)
+            # checks to make sure there is only 5 games per page of the library so it doesnt get overwhelming and the embed cant hold the whole library
+            if (count%libclass.MaxGamesOnPage == 0 and count > 0) or count - len(libclass.data_array) == 0:
+                libclass.AddPage()
+    elif type(libclass.data_array[0]) == str:
+        for count, game in enumerate(libclass.data_array):
+            #print(game)
+            #adds a field per game to the embed with the downloaded status
+            libclass.Page.add_field(name=game, value="test", inline=False)
+            if (count%libclass.MaxGamesOnPage == 0 and count > 0) or count - len(libclass.data_array) == 0:
+                libclass.AddPage()
+    #if there are 5 or less items
+    if len(libclass.Embeds) == 0:
+        libclass.AddPage()
 
 @discord_client.command()
 async def readlib(ctx, user_mention, formatting=None):
@@ -264,7 +315,7 @@ async def readlib(ctx, user_mention, formatting=None):
 
     await array_to_embed(UsersLibrary)
     
-    print(UsersLibrary.PageNumber)
+    #print(UsersLibrary.PageNumber)
     response = await ctx.send(embed=UsersLibrary.CurrentPage())
     await UsersLibrary.React(response)
 
@@ -309,8 +360,8 @@ async def compare(ctx, person1, person2, formatting=None):
                 temp[1] += item[1] + "\n"
         games_with_embed_data.append(temp)
     
-    
-    Common_lib = Library(data= games_with_embed_data)
+    #print(games_with_embed_data)
+    Common_lib = Library(User = "Common Games",data= games_with_embed_data)
     
     await array_to_embed(Common_lib)
                             
@@ -331,10 +382,6 @@ async def compare(ctx, person1, person2, formatting=None):
                 
             response = await ctx.send(embed=Common_lib.CurrentPage())
             await Common_lib.React(response)
-
-    #['Unturned', 'Stormbound', 'Halo: The Master Chief Collection', 'BATTLETECH', "Don't Starve Together", 'Raft', "Tom Clancy's Rainbow Six Siege", 
-    # 'Wallpaper Engine', 'Barotrauma', 'MechWarrior Online', 'Bloons TD 6', 'Kingdom: Classic', 'Armello', 'Sins of a Solar Empire: Rebellion', 
-    # 'Tabletop Simulator', 'Crossout', 'Cyberpunk 2077']
 
 #discord_client.loop.create_task(update_libs())
 discord_client.run(TOKEN)
