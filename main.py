@@ -41,8 +41,7 @@ async def on_ready():
     print('Ready set let\'s go')
     await discord_client.change_presence(activity=discord.Activity(type=discord.ActivityType.playing, name=prefix + "help"))
 
-@discord_client.command()
-async def search(ctx, search_query, user_query=None):
+async def Search_func(ctx, search_query, user_query=None, download__func=False):
     wks = wb.get_worksheet(0)
 
     wks_list = wks.get_all_values()
@@ -52,13 +51,12 @@ async def search(ctx, search_query, user_query=None):
         #print(ctx.author.mention)
         if user_query == None:
             if ctx.author.mention.replace("!","") == game[0]:
-                if search_query in game[1].lower():
-                    results_data.append(game[1])
+                    if search_query == None or search_query in game[1].lower():
+                        results_data.append(game[1])
         else:
             if user_query.replace("!","") == game[0]:
-                if search_query in game[1].lower():
+                if search_query == None or search_query in game[1].lower():
                     results_data.append(game[1])
-
 
     #print(results_data)
     results_lib = Library(User="results",data=results_data)
@@ -66,22 +64,76 @@ async def search(ctx, search_query, user_query=None):
     await array_to_embed(results_lib)
 
     response = await ctx.send(embed=results_lib.CurrentPage())
-    await results_lib.React(response)
-
+    await results_lib.React(response,download__func)
+    
     @discord_client.event
     async def on_reaction_add(reaction, user):
         if user != discord_client.user:
-            
+            if download__func == True:
+                if reaction.emoji == results_lib.DownloadReacts[0]:
+                    game_name = results_lib.data_array[0 + (5*results_lib.PageNumber)]
+
+                    for row, row_game_name in enumerate(wks.col_values(2)):
+                        if game_name == row_game_name:
+                            if wks.cell(row+1,1).value == user.mention:
+                                wks.update_cell(row+1,7,"Yes")
+                                await ctx.send("```" + game_name + " has been marked as downloaded```")
+                                break
+                
+                if reaction.emoji == results_lib.DownloadReacts[1]:
+                    game_name = results_lib.data_array[1 + (5*results_lib.PageNumber)]
+                    for row, row_game_name in enumerate(wks.col_values(2)):
+                        if game_name == row_game_name:
+                            if wks.cell(row+1,1).value == user.mention:
+                                wks.update_cell(row+1,7,"Yes")
+                                await ctx.send("```" + game_name + " has been marked as downloaded```")
+                                break
+
+                if reaction.emoji == results_lib.DownloadReacts[2]:
+                    game_name = results_lib.data_array[2 + (5*results_lib.PageNumber)]
+                    for row, row_game_name in enumerate(wks.col_values(2)):
+                        if game_name == row_game_name:
+                            if wks.cell(row+1,1).value == user.mention:
+                                wks.update_cell(row+1,7,"Yes")
+                                await ctx.send("```" + game_name + " has been marked as downloaded```")
+                                break
+
+                if reaction.emoji == results_lib.DownloadReacts[3]:
+                    game_name = results_lib.data_array[3 + (5*results_lib.PageNumber)]
+                    for row, row_game_name in enumerate(wks.col_values(2)):
+                        if game_name == row_game_name:
+                            if wks.cell(row+1,1).value == user.mention:
+                                wks.update_cell(row+1,7,"Yes")
+                                await ctx.send("```" + game_name + " has been marked as downloaded```")
+                                break
+
+                if reaction.emoji == results_lib.DownloadReacts[4]:
+                    game_name = results_lib.data_array[4 + (5*results_lib.PageNumber)]
+
+                    for row, row_game_name in enumerate(wks.col_values(2)):
+                        if game_name == row_game_name:
+                            if wks.cell(row+1,1).value == user.mention:
+                                wks.update_cell(row+1,7,"Yes")
+                                await ctx.send("```" + game_name + " has been marked as downloaded```")
+                                break
+
             if reaction.emoji == results_lib.InitialReacts[1]:
                 await reaction.message.delete()
                 results_lib.NextPage()
+                response = await ctx.send(embed=results_lib.CurrentPage())
+                await results_lib.React(response,download__func)
 
             if reaction.emoji == results_lib.InitialReacts[0]:
                 await reaction.message.delete()
                 results_lib.PreviousPage()
-                
-            response = await ctx.send(embed=results_lib.CurrentPage())
-            await results_lib.React(response)
+                response = await ctx.send(embed=results_lib.CurrentPage())
+                await results_lib.React(response,download__func)
+
+    return response
+
+@discord_client.command()
+async def search(ctx, search_query, user_query=None,called_from_download=False):
+    response = await Search_func(ctx, search_query, user_query, called_from_download)
 
 @discord_client.command()
 async def update_lib(ctx, member_name):
@@ -131,7 +183,7 @@ async def update_lib(ctx, member_name):
             #makes dictionary for game to easily access information
             game_info_dict = ast.literal_eval(game)
             if 'hours_forever' in game_info_dict:
-                useful_game_info = [member_name, game_info_dict['name'], game_info_dict['hours_forever'], game_info_dict['appid'], 'https://store.steampowered.com/app/'+str(game_info_dict['appid']), 'No', 'no', 'none',]
+                useful_game_info = [member_name, game_info_dict['name'], game_info_dict['hours_forever'], game_info_dict['appid'], 'https://store.steampowered.com/app/'+str(game_info_dict['appid']), 'No', 'No', 'none',]
 
                 steam_lib_link = useful_game_info[4]
             
@@ -170,21 +222,28 @@ async def update_lib(ctx, member_name):
         await ctx.send("```Your library has been updated```")
 
 @discord_client.command()
-async def download(ctx, download_query):
+async def download(ctx, download_query=None, user_query=None):
     wks = wb.get_worksheet(0) #open first sheet
 
-    #gets the row with game ids
-    id_list =  wks.col_values(4)
+    try: 
+        download_query = int(download_query)
+        
+        #gets the row with game ids
+        id_list =  wks.col_values(4)
 
-    if download_query in id_list:
-        for row, id in enumerate(id_list):
-            if id == download_query:
-                if ctx.author.mention == wks.cell(row+1,1).value:
-                    wks.update_cell(row+1,7,"Yes")
-                    game_name = wks.cell(row+1,2).value
-                    await ctx.send("```You have downloaded " + game_name + " ```")
-    else:
-        await ctx.send("```That ID does not match any game ID's I have```")
+        if download_query in id_list:
+            for row, id in enumerate(id_list):
+                if id == download_query:
+                    if ctx.author.mention == wks.cell(row+1,1).value:
+                        wks.update_cell(row+1,7,"Yes")
+                        game_name = wks.cell(row+1,2).value
+                        await ctx.send("```You have downloaded " + game_name + " ```")
+        else:
+            await ctx.send("```That ID does not match any game ID's I have```")
+        
+
+    except (ValueError, TypeError) as e:
+        results = await search(ctx, download_query, user_query, called_from_download=True)
 
 @discord_client.command()
 async def steamid(ctx, input_id):
@@ -288,8 +347,10 @@ async def sheet_data_to_array(libclass, formatting=None):
                         game_details = item.Format_Details(formatting)
                         libclass.data_array.append((game_details[0],game_details[1]))
 
+    #print(libclass.data_array)
+
 async def array_to_embed(libclass):
-    if type(libclass.data_array[0]) == list:
+    if type(libclass.data_array[0]) == list or type(libclass.data_array[0]) == tuple:
         for count, game in enumerate(libclass.data_array):
             #adds a field per game to the embed with the downloaded status
             libclass.Page.add_field(name=game[0], value=game[1], inline=False)
@@ -298,10 +359,9 @@ async def array_to_embed(libclass):
                 libclass.AddPage()
     elif type(libclass.data_array[0]) == str:
         for count, game in enumerate(libclass.data_array):
-            #print(game)
             #adds a field per game to the embed with the downloaded status
-            libclass.Page.add_field(name=game, value="test", inline=False)
-            if (count%libclass.MaxGamesOnPage == 0 and count > 0) or count - len(libclass.data_array) == 0:
+            libclass.Page.add_field(name=game, value="Mark as downloaded by react with 5" if (count+1)%libclass.MaxGamesOnPage == 0 else "Mark as downloaded by react with " + str((count+1)%libclass.MaxGamesOnPage), inline=False)
+            if (((count+1)%libclass.MaxGamesOnPage) == 0 and count > 0) or count - len(libclass.data_array) == 0:
                 libclass.AddPage()
     #if there are 5 or less items
     if len(libclass.Embeds) == 0:
@@ -309,7 +369,7 @@ async def array_to_embed(libclass):
 
 @discord_client.command()
 async def readlib(ctx, user_mention, formatting=None):
-    UsersLibrary = Library(user_mention)
+    UsersLibrary = Library(User=user_mention)
 
     await sheet_data_to_array(UsersLibrary, formatting)
 
@@ -317,7 +377,7 @@ async def readlib(ctx, user_mention, formatting=None):
     
     #print(UsersLibrary.PageNumber)
     response = await ctx.send(embed=UsersLibrary.CurrentPage())
-    await UsersLibrary.React(response)
+    await UsersLibrary.React(response,False)
 
     @discord_client.event
     async def on_reaction_add(reaction, user):
@@ -332,7 +392,7 @@ async def readlib(ctx, user_mention, formatting=None):
                 UsersLibrary.PreviousPage()
                 
             response = await ctx.send(embed=UsersLibrary.CurrentPage())
-            await UsersLibrary.React(response)
+            await UsersLibrary.React(response,False)
     
 @discord_client.command()
 async def compare(ctx, person1, person2, formatting=None):
@@ -366,7 +426,7 @@ async def compare(ctx, person1, person2, formatting=None):
     await array_to_embed(Common_lib)
                             
     response = await ctx.send(embed=Common_lib.CurrentPage())
-    await Common_lib.React(response)
+    await Common_lib.React(response,False)
 
     @discord_client.event
     async def on_reaction_add(reaction, user):
@@ -381,7 +441,7 @@ async def compare(ctx, person1, person2, formatting=None):
                 Common_lib.PreviousPage()
                 
             response = await ctx.send(embed=Common_lib.CurrentPage())
-            await Common_lib.React(response)
+            await Common_lib.React(response,False)
 
 #discord_client.loop.create_task(update_libs())
 discord_client.run(TOKEN)

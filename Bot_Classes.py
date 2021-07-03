@@ -62,7 +62,8 @@ class Library:
         self.GameCount = len(self.Embeds)
         #creates a copy of the basic page
         self.Page = self.NewEmbed()
-        self.InitialReacts = ['\u23EA', '\u23E9']
+        self.InitialReacts = ['⏪', '⏩']
+        self.DownloadReacts = ['1️⃣','2️⃣','3️⃣','4️⃣','5️⃣']
 
     def AddPage(self):
         #adds the current page to the embed list
@@ -73,11 +74,11 @@ class Library:
     def NewEmbed(self):
         #Creates variable used to reset the page variable after adding it to the Library list
         if self.User == "Common Games":
-            return discord.Embed(title = self.User, description = "Maximum of 5 games per page." , color = discord.Color.blue())
+            return discord.Embed(title = self.User, description = "Games played by both mentioned people" , color = discord.Color.blue())
         elif self.User == "results":
-            return discord.Embed(title = "Search " + self.User, description = "Maximum of 5 games per page." , color = discord.Color.green())
+            return discord.Embed(title = "Search " + self.User, description = "Shows all games with search value in name" , color = discord.Color.green())
         else:
-            return discord.Embed(title = self.User + "'s library", description = "Maximum of 5 games per page." , color = discord.Color.orange())
+            return discord.Embed(title = self.User + "'s library", description = "Mentioned user's library" , color = discord.Color.orange())
 
     def NextPage(self):
         self.PageNumber += 1
@@ -88,6 +89,11 @@ class Library:
     def CurrentPage(self):
         return self.Embeds[self.PageNumber]
 
-    async def React(self, response):
-        for emoji in self.InitialReacts:
-            await response.add_reaction(emoji)
+    async def React(self, response, download):
+        if len(self.Embeds) > 1:
+            for emoji in self.InitialReacts:
+                await response.add_reaction(emoji)
+
+        if download == True:
+            for emoji in self.DownloadReacts:
+                await response.add_reaction(emoji)
