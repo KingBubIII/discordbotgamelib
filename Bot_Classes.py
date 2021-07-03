@@ -91,8 +91,13 @@ class Library:
 
     async def React(self, response, download):
         if len(self.Embeds) > 1:
-            for emoji in self.InitialReacts:
-                await response.add_reaction(emoji)
+            if self.PageNumber == 0:
+                await response.add_reaction(self.InitialReacts[1])
+            elif self.PageNumber == len(self.Embeds)-1:
+                await response.add_reaction(self.InitialReacts[0])
+            else:
+                for emoji in self.InitialReacts:
+                    await response.add_reaction(emoji)
 
         if download == True:
             for emoji in self.DownloadReacts:
