@@ -42,7 +42,6 @@ async def Search_func(ctx, search_query, user_query=None, download__func=False):
 
     results_data = []
     for game in wks_list:
-        #print(ctx.author.mention)
         if user_query == None:
             if ctx.author.mention.replace("!","") == game[0]:
                     if search_query == None or search_query in game[1].lower():
@@ -52,7 +51,6 @@ async def Search_func(ctx, search_query, user_query=None, download__func=False):
                 if search_query == None or search_query in game[1].lower():
                     results_data.append(game[1])
 
-    #print(results_data)
     results_lib = Library(User="results",data=results_data)
 
     await array_to_embed(results_lib)
@@ -162,8 +160,6 @@ async def sheet_data_to_array(libclass, formatting=None):
                         game_details = item.Format_Details(formatting)
                         libclass.data_array.append((game_details[0],game_details[1]))
 
-    #print(libclass.data_array)
-
 async def array_to_embed(libclass):
     if type(libclass.data_array[0]) == list or type(libclass.data_array[0]) == tuple:
         for count, game in enumerate(libclass.data_array):
@@ -182,6 +178,41 @@ async def array_to_embed(libclass):
     if len(libclass.Embeds) == 0:
         libclass.AddPage()
 
+async def compare_func(formatting, *members):
+
+    peoples_libs = []
+    peoples_games = []
+    for count, person in enumerate(members[0]):
+        peoples_libs.append(Library(person))
+        if await sheet_data_to_array(peoples_libs[count], formatting) == False:
+            return "```Selected formatting is not an option```"
+        else:
+            temp = [item[0] for item in peoples_libs[count].data_array]
+            peoples_games.append(temp)
+
+    for count, games in enumerate(peoples_games):
+        peoples_games[count] = set(games)
+
+    common_games = set(peoples_games[0])
+    for count in range(len(peoples_games)-1):
+        common_games = common_games.intersection(set(peoples_games[count+1]))
+    common_games = list(common_games)
+
+    games_with_embed_data = []
+
+    for count in range(len(common_games)):
+        temp = [common_games[count],""]
+
+        for person in peoples_libs:
+            for item in person.data_array:
+                if common_games[count] == item[0]:
+                    temp[1] += item[1] + "\n"
+        games_with_embed_data.append(temp)
+    Common_lib = Library(User = "Common Games",data= games_with_embed_data)
+    await array_to_embed(Common_lib)
+    return Common_lib
+
+
 #Setting the help command to be what the bot is playing 
 @discord_client.event
 async def on_ready():
@@ -189,53 +220,24 @@ async def on_ready():
     await discord_client.change_presence(activity=discord.Activity(type=discord.ActivityType.playing, name=prefix + "help"))
 
 @discord_client.command()
-async def compare(ctx, person1, person2, formatting=None):
-    person1_lib = Library(person1)
-    person2_lib = Library(person2)
+async def compare(ctx, formatting=None, *members):
 
-    if await sheet_data_to_array(person1_lib, formatting) == False or await sheet_data_to_array(person2_lib, formatting) == False:
-        await ctx.send("```Selected formatting is not an option```")
-    else:
-        person1_games = [item[0] for item in person1_lib.data_array]
-        person2_games = [item[0] for item in person2_lib.data_array]
+    Common_lib = await compare_func(formatting, members)
 
-        common_games = list(set(person1_games).intersection(person2_games))
+    @discord_client.event
+    async def on_reaction_add(reaction, user):
+        if user != discord_client.user:
+            
+            if reaction.emoji == Common_lib.InitialReacts[1]:
+                await reaction.message.delete()
+                Common_lib.NextPage()
 
-        games_with_embed_data = []
-
-        for count in range(len(common_games)):
-            temp = [common_games[count],""]
-            for item in person1_lib.data_array:
-                if common_games[count] == item[0]:
-                    temp[1] += item[1] + "\n"
-
-            for item in person2_lib.data_array:
-                if common_games[count] == item[0]:
-                    temp[1] += item[1] + "\n"
-            games_with_embed_data.append(temp)
-        
-        #print(games_with_embed_data)
-        Common_lib = Library(User = "Common Games",data= games_with_embed_data)
-        
-        await array_to_embed(Common_lib)
-                                
-        response = await ctx.send(embed=Common_lib.CurrentPage())
-        await Common_lib.React(response,False)
-
-        @discord_client.event
-        async def on_reaction_add(reaction, user):
-            if user != discord_client.user:
+            if reaction.emoji == Common_lib.InitialReacts[0]:
+                await reaction.message.delete()
+                Common_lib.PreviousPage()
                 
-                if reaction.emoji == Common_lib.InitialReacts[1]:
-                    await reaction.message.delete()
-                    Common_lib.NextPage()
-
-                if reaction.emoji == Common_lib.InitialReacts[0]:
-                    await reaction.message.delete()
-                    Common_lib.PreviousPage()
-                    
-                response = await ctx.send(embed=Common_lib.CurrentPage())
-                await Common_lib.React(response,False)
+            response = await ctx.send(embed=Common_lib.CurrentPage())
+            await Common_lib.React(response,False)
 
 @discord_client.command()
 async def download(ctx, download_query=None, user_query=None):
@@ -267,9 +269,10 @@ async def echo(ctx, *, msg='echo'):
 
 @discord_client.command()
 async def help(ctx, commandName=None):
+    helpEmbed = discord.Embed(title = 'basic bitch', color = discord.Color.orange())
 
     if commandName == None:
-        helpEmbed = discord.Embed(title = 'List of short command descriptions', color = discord.Color.orange())
+        helpEmbed.title = 'List of short command descriptions'
         helpEmbed.add_field(name = 'Command Prefix: ', value =  'put this, "' + prefix + '", in front of specified command name to be able to call the command', inline=False)
         helpEmbed.add_field(name = 'help', value = 'One optional arguement: commandName\nSpecify a command\'s name to get more details on that command', inline=False)
         helpEmbed.add_field(name = 'echo', value = 'Repeats what you say in a fancy code block', inline=False)
@@ -278,30 +281,57 @@ async def help(ctx, commandName=None):
 
 
     elif commandName == 'echo':
-        helpEmbed = discord.Embed(title = 'In depth help for ', color = discord.Color.orange())
+        helpEmbed.title = 'In depth help for'
         helpEmbed.add_field(name = commandName, value = 'Repeats what you say in a fancy code block\n\n\
-                                                        One optional arguement: message\n\n\
-                                                        If the arguement is not filled then the message defaults to \'echo\'\n\n\
+                                                        Optional command(s): message\n\n\
+                                                        Default message to \'echo\'\n\n\
                                                         The arguement can be as long as you want including spaces\n\n \
                                                         Default Example: >>echo\nDefault Ouptut: echo\n\n\
                                                         Filled argument Example: >>echo This command is useless \n\
                                                         Filled arguement Output: This command is useless')
 
+        #helpEmbed.add_field(name = 'Examples', value = 'stuff')
+
     elif commandName == 'readlib':
-        helpEmbed = discord.Embed(title = 'In depth help for ', color = discord.Color.orange())
-        helpEmbed.add_field(name = commandName, value = 'Allows you and others to read the games you have installed.\n\n\
-                                                        This command has one manditory command: username and one optional command: formatting\n\
-                                                        Specify your username or another person\'s in the server to read the users library of games\n\
-                                                        The formatting command allows your to read more or less details of the library of the user you specify. \
-                                                        To do this you must put a \'-\' then put any number of and combination of the letters  \
-                                                        \'f\' \'n\' \'a\' \'h\' \'s\' \'o\' \'d\'.\n\
-                                                        \'f\': Displays full game\'s name\n\
-                                                        \'n\': Displays game\'s nickname \n\
-                                                        \'a\': stands for all; It will display all avaiable info options \n\
-                                                        \'h\': stands for hours; Displays the number of hours you\'ve put into the game \n\
-                                                        \'s\': stands for link; Displays the game\'s Steam link \n\
-                                                        \'o\': stands for online; Displays weather or not the game is multiplayer \n\
-                                                        \'d\': stands for downloaded; Displays weather or not you have told me you have the game downloaded')
+        helpEmbed.title = 'In depth help for'
+        helpEmbed.add_field(name = commandName, value = 'Mention a person to read their library including yourself\n\
+                                                        Manditory command(s): username\nOptional command(s): formatting\n\
+                                                        Specify formatting by a \'-\' then put any combination of the letters\
+                                                        \'a\' \'h\' \'s\' \'o\' \'d\'\n\
+                                                        \'a\' (All): It will display all avaiable info options\n\
+                                                        \'h\' (Hours): Displays the number of hours you\'ve put into the game\n\
+                                                        \'s\' (Link): Gives game\'s Steam link\n\
+                                                        \'o\' (Online): Displays if the game is multiplayer\n\
+                                                        \'d\' (Downloaded): Displays if you have the game downloaded')
+
+        helpEmbed.add_field(name = 'Examples', value = '>>readlib @KingBubIII\n\n\
+                                                        >>readlib @KingBubIII -a\n\n\
+                                                        >>readlib @KingBubIII -hd\n\n\
+                                                        >>readlib @KingBubIII -dhos\n\n')
+
+    elif commandName == 'compare':
+        helpEmbed.title = 'In depth help for'
+        helpEmbed.add_field(name = commandName, value = 'explain')
+        helpEmbed.add_field(name = 'Examples', value = 'stuff')\
+
+    elif commandName == 'download':
+        helpEmbed.title = 'In depth help for'
+        helpEmbed.add_field(name = commandName, value = 'explain')
+        helpEmbed.add_field(name = 'Examples', value = 'stuff')
+
+    elif commandName == 'steamid':
+        helpEmbed.title = 'In depth help for'
+        helpEmbed.add_field(name = commandName, value = 'Update your steam ID in my database\n\n\
+                                                            If you\'re new I\'ll create a new profile in my database and add your ID\n\n\
+                                                            Your steam ID directs me to your Steam profile\n\n\
+                                                            Make sure you set your acount to public though!')
+        helpEmbed.add_field(name = 'Examples', value = '>>steamid 76561198286078396\n\n\
+                                                        >>steamid 12345678912345678')
+
+    elif commandName == 'search':
+        helpEmbed.title = 'In depth help for'
+        helpEmbed.add_field(name = commandName, value = 'explain')
+        helpEmbed.add_field(name = 'Examples', value = 'stuff')
 
     await ctx.send(embed=helpEmbed)
 
@@ -315,7 +345,6 @@ async def readlib(ctx, user_mention, formatting=None):
 
         await array_to_embed(UsersLibrary)
         
-        #print(UsersLibrary.PageNumber)
         response = await ctx.send(embed=UsersLibrary.CurrentPage())
         await UsersLibrary.React(response,False)
 
@@ -443,6 +472,10 @@ async def update_lib(ctx, member_name):
             #await ctx.send("```I do not have a Steam ID for you, please go input one with the 'steamid' command```")
             
         await ctx.send("```Your library has been updated```")
+
+@discord_client.command()
+async def random(ctx, *members):
+    pass
 
 #discord_client.loop.create_task(update_libs())
 discord_client.run(TOKEN)

@@ -74,7 +74,7 @@ class Library:
     def NewEmbed(self):
         #Creates variable used to reset the page variable after adding it to the Library list
         if self.User == "Common Games":
-            return discord.Embed(title = self.User, description = "Games played by both mentioned people" , color = discord.Color.blue())
+            return discord.Embed(title = self.User, description = "Games played by all mentioned people" , color = discord.Color.blue())
         elif self.User == "results":
             return discord.Embed(title = "Search " + self.User, description = "Shows all games with search value in name" , color = discord.Color.green())
         else:
