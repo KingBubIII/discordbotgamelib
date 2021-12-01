@@ -338,6 +338,14 @@ async def help(ctx, commandName=None):
 @discord_client.command()
 async def readlib(ctx, user_mention, formatting=None):
     UsersLibrary = Library(User=user_mention)
+    
+    #sort sheet by game names ascending if they don't ask about hours
+    wks.sort((2, 'asc'))
+
+    if not formatting == None:
+        #sort sheet by number of hours descending if they ask about hours
+        if 'h' in formatting:
+            wks.sort((3, 'des'))
 
     if await sheet_data_to_array(UsersLibrary, formatting) == False:
         await ctx.send("```Selected formatting is not an option```")

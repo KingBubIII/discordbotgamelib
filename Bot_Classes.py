@@ -8,6 +8,23 @@ import ast
 from bs4 import BeautifulSoup as soup
 from Bot_Classes import *
 
+#things to get setup with google, being authorized and whatnot
+scope = [
+    "https://spreadsheets.google.com/feeds",'https://www.googleapis.com/auth/spreadsheets',
+    "https://www.googleapis.com/auth/drive.file","https://www.googleapis.com/auth/drive"]
+
+#credentials in list
+creds = ServiceAccountCredentials.from_json_keyfile_name("creds.json", scope)
+
+#passes in all credentials to make sure changes/ viewing are allowed
+sheets_client = gspread.authorize(creds)
+
+# Open the spreadhseet
+wb = sheets_client.open('discord_bot_data')
+
+#open 
+wks = wb.get_worksheet(0)
+
 class Game:
     def __init__(self, Data : list):
         self.Owner = str(Data[0])
