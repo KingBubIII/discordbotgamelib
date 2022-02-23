@@ -35,6 +35,7 @@ discord_client = commands.Bot(command_prefix=prefix)
 #removing default help command
 discord_client.remove_command('help')
 
+# allows users to search libraries, their own or others, for game names
 async def Search_func(ctx, search_query, user_query=None, download__func=False):
     wks = wb.get_worksheet(0)
 
@@ -123,6 +124,7 @@ async def Search_func(ctx, search_query, user_query=None, download__func=False):
 
     return response
 
+# accesses the database to recall info on games to create a library class
 async def sheet_data_to_array(libclass, formatting=None):
     #open first sheet
     wks = wb.get_worksheet(0)
@@ -160,6 +162,7 @@ async def sheet_data_to_array(libclass, formatting=None):
                         game_details = item.Format_Details(formatting)
                         libclass.data_array.append((game_details[0],game_details[1]))
 
+# formats serveral pages of embeds using the format details specified by user
 async def array_to_embed(libclass):
     if type(libclass.data_array[0]) == list or type(libclass.data_array[0]) == tuple:
         for count, game in enumerate(libclass.data_array):
@@ -178,6 +181,8 @@ async def array_to_embed(libclass):
     if len(libclass.Embeds) == 0:
         libclass.AddPage()
 
+# a function to show similarities between members libraries
+# can compare two or more members at a time
 async def compare_func(formatting, *members):
 
     peoples_libs = []
@@ -212,8 +217,8 @@ async def compare_func(formatting, *members):
     await array_to_embed(Common_lib)
     return Common_lib
 
-
-#Setting the help command to be what the bot is playing 
+#signaling the bot is online and ready to be used
+#Setting the help command to be what the bot is "playing"
 @discord_client.event
 async def on_ready():
     print('Ready set let\'s go')
@@ -263,10 +268,14 @@ async def download(ctx, download_query=None, user_query=None):
     except (ValueError, TypeError) as e:
         results = await search(ctx, download_query, user_query, called_from_download=True)
 
+# A simple command that repeats what was sent
+# mainly useful for debugging 
 @discord_client.command() 
 async def echo(ctx, *, msg='echo'):
     await ctx.send(f"""```{msg}```""")
 
+# teaches members how to use bot
+# you can specify commands to get in depth help on them
 @discord_client.command()
 async def help(ctx, commandName=None):
     helpEmbed = discord.Embed(title = 'basic bitch', color = discord.Color.orange())
@@ -289,15 +298,14 @@ async def help(ctx, commandName=None):
                                                         Default Example: >>echo\nDefault Ouptut: echo\n\n\
                                                         Filled argument Example: >>echo This command is useless \n\
                                                         Filled arguement Output: This command is useless')
-
-        #helpEmbed.add_field(name = 'Examples', value = 'stuff')
+        helpEmbed.add_field(name = 'Examples', value = '>>echo testing testing')
 
     elif commandName == 'readlib':
         helpEmbed.title = 'In depth help for'
-        helpEmbed.add_field(name = commandName, value = 'Mention a person to read their library including yourself\n\
-                                                        Manditory command(s): username\nOptional command(s): formatting\n\
+        helpEmbed.add_field(name = commandName, value = 'Mention a person to read their library\n\n\
+                                                        Manditory command(s): username\nOptional command(s): formatting\n\n\
                                                         Specify formatting by a \'-\' then put any combination of the letters\
-                                                        \'a\' \'h\' \'s\' \'o\' \'d\'\n\
+                                                        \'a\' \'h\' \'s\' \'o\' \'d\'\n\n\
                                                         \'a\' (All): It will display all avaiable info options\n\
                                                         \'h\' (Hours): Displays the number of hours you\'ve put into the game\n\
                                                         \'s\' (Link): Gives game\'s Steam link\n\
@@ -311,8 +319,13 @@ async def help(ctx, commandName=None):
 
     elif commandName == 'compare':
         helpEmbed.title = 'In depth help for'
-        helpEmbed.add_field(name = commandName, value = 'explain')
-        helpEmbed.add_field(name = 'Examples', value = 'stuff')\
+        helpEmbed.add_field(name = commandName, value = 'See all games each mentioned person has in common\n\
+                                                        Can also show details using the details option of readlib')
+        helpEmbed.add_field(name = 'Examples', value = '>>compare @KingBubIII @Test123\n\n\
+                                                        >>compare @KingBubIII   @Test123 -d\n\
+                                                        Shows common games that are downloaded\n\n\
+                                                        >>compare @KingBubIII @Test123 -hso\n\
+                                                        Shows common games while showing hours, Steam link, and if its multiplayer for each player')
 
     elif commandName == 'download':
         helpEmbed.title = 'In depth help for'
@@ -335,6 +348,8 @@ async def help(ctx, commandName=None):
 
     await ctx.send(embed=helpEmbed)
 
+# sends a discord embed that users can page through to view all games and details in database
+# anyone can call to read another persons library
 @discord_client.command()
 async def readlib(ctx, user_mention, formatting=None):
     UsersLibrary = Library(User=user_mention)
@@ -370,7 +385,8 @@ async def readlib(ctx, user_mention, formatting=None):
                     
                 response = await ctx.send(embed=UsersLibrary.CurrentPage())
                 await UsersLibrary.React(response,False)
-    
+
+# runs the Search_func command
 @discord_client.command()
 async def search(ctx, search_query, user_query=None,called_from_download=False):
     response = await Search_func(ctx, search_query, user_query, called_from_download)
@@ -394,9 +410,12 @@ async def steamid(ctx, input_id):
         new_user_info = [member_name,input_id, "https://steamcommunity.com/profiles/"+input_id, "https://steamcommunity.com/profiles/" + input_id + "/games/?tab=all"]
         wks.append_row(new_user_info, 'RAW')
         await ctx.send('```New infomation added```')
-                
+
+# a background function to update the database
+# updates hours played per game and adds new games purchased
+# function only updates one member's library
 @discord_client.command()
-async def update_lib(ctx, member_name):
+async def _update_lib(ctx, member_name):
     
     member_name = str(member_name).replace("!","")
     #member_name = ctx.author.mention
@@ -481,6 +500,7 @@ async def update_lib(ctx, member_name):
             
         await ctx.send("```Your library has been updated```")
 
+# will give a common game suggestion between all mentioned members
 @discord_client.command()
 async def random(ctx, *members):
     pass
