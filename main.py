@@ -393,22 +393,32 @@ async def search(ctx, search_query, user_query=None,called_from_download=False):
 
 @discord_client.command()
 async def steamid(ctx, input_id):
+    #takes discord user mention and formats it to where its useable
     member_name = ctx.author.mention
     member_name = str(member_name).replace("!","")
-    #await ctx.send(member_name)
-    wks = wb.get_worksheet(1) #open second sheet
+    
+    #open steam profile info sheet
+    wks = wb.get_worksheet(1)
 
+    #gets all member ids that are on record
     usernames_list = wks.col_values(1)
     #await ctx.send(usernames_list)
 
+    #checks if mentioned member is on record
     if member_name in usernames_list:
+        #finds the row the member record is on
         username_row = usernames_list.index(member_name) + 1
+        #updates cell value with new id
         wks.update_cell(username_row, 2, input_id)
+        #sends confirmation message back into channel 
         await ctx.send('```Your information has been updated```')
 
     else:
+        # creates an array with new memeber record info
         new_user_info = [member_name,input_id, "https://steamcommunity.com/profiles/"+input_id, "https://steamcommunity.com/profiles/" + input_id + "/games/?tab=all"]
+        #creates new row in database
         wks.append_row(new_user_info, 'RAW')
+        #sends confirmation message back into channel
         await ctx.send('```New infomation added```')
 
 # a background function to update the database
