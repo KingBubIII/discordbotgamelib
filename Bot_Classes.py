@@ -88,7 +88,9 @@ class Game:
         #returns fully formatted string to add to embed
         return name_type, formatted_details
 
+# class to hold multiple game info at once
 class Library:
+    # init class variable
     def __init__(self, User=None, data=None):
         self.User = User.replace('!', '')
         self.PageNumber = 0
@@ -105,40 +107,60 @@ class Library:
         self.InitialReacts = ['⏪', '⏩']
         self.DownloadReacts = ['1️⃣','2️⃣','3️⃣','4️⃣','5️⃣']
 
+    # add an embed page
     def AddPage(self):
         #adds the current page to the embed list
         self.Embeds.append(self.Page)
-        #Replace page with basic page again
+        #Replace creation page with basic page again
         self.Page = self.NewEmbed()
 
+    # function for creating new embed page
+    # displays different kinds of information
     def NewEmbed(self):
-        #Creates variable used to reset the page variable after adding it to the Library list
+        #checks if embed is for comparing libraries
         if self.User == "Common Games":
             return discord.Embed(title = self.User, description = "Games played by all mentioned people" , color = discord.Color.blue())
+        #checks if embed is a search result
         elif self.User == "results":
             return discord.Embed(title = "Search " + self.User, description = "Shows all games with search value in name" , color = discord.Color.green())
+        #standard call for an individual member
         else:
             return discord.Embed(title = self.User + "'s library", description = "Mentioned user's library" , color = discord.Color.orange())
 
+    # increments what page is shown in discord
     def NextPage(self):
         self.PageNumber += 1
 
+    # decrements what page is shown in discord
     def PreviousPage(self):
         self.PageNumber -= 1
     
+    # returns current embed page 
     def CurrentPage(self):
         return self.Embeds[self.PageNumber]
 
+    # defines what reactions do what when a member uses them
     async def React(self, response, download):
+        #checks if there is embeds to show
         if len(self.Embeds) > 1:
+            # if its the first page only add the forward reaction
             if self.PageNumber == 0:
+                # reacts with emoji
                 await response.add_reaction(self.InitialReacts[1])
+            # if its the last page only add the backward reaction
             elif self.PageNumber == len(self.Embeds)-1:
+                # reacts with emoji
                 await response.add_reaction(self.InitialReacts[0])
+            # if its any page besides first or last then add all reactions
             else:
+                #loops through all reactions
                 for emoji in self.InitialReacts:
+                    # reacts with emoji
                     await response.add_reaction(emoji)
-
+        # if the member wants to mark games as downloaded in the data base
         if download == True:
+            # loop though each download reaction
+            # 1 - 5 emojis "downloads" the respective game shown in the list
             for emoji in self.DownloadReacts:
+                # reacts with emoji
                 await response.add_reaction(emoji)
