@@ -181,6 +181,36 @@ async def array_to_embed(libclass):
     if len(libclass.Embeds) == 0:
         libclass.AddPage()
 
+#allows command function arguements to be called from anywhere when using a command
+async def Arg_Assign(all_args):
+
+    # filters down entire list of arguments down to ones with member character tags '<@!'
+    # converts from tuple to list
+    members = list(filter(lambda arg: "<@!" in arg , all_args))
+    
+    # checks if there is a format choice or not
+    #if no
+    if len(members) == len(all_args):
+        #format becomes none type
+        formatting = None
+    #if yes
+    else:
+        #make format a list of all the arguments
+        formatting = list(all_args)
+
+        #remove all member arguemnts so formatting is left alone
+        for member in members:
+            formatting.remove(member)
+        #format becomes string from list
+        formatting = formatting[0]
+    
+    #if only one member is mentioned convert it to a string instead of leaving it in an array
+    if len(members) == 1:
+        members = members[0]
+
+    return members, formatting
+
+
 # a function to show similarities between members libraries
 # can compare two or more members at a time
 async def compare_func(formatting, *members):
@@ -230,15 +260,7 @@ async def on_ready():
 @discord_client.command()
 async def compare(ctx, *all_args):
 
-    members = list(filter(lambda arg: "<@!" in arg , all_args))
-
-    if len(members) == len(all_args):
-        formatting = None
-    else:
-        formatting = list(all_args)
-        for member in members:
-            formatting.remove(member)
-        formatting = formatting[0]
+    members, formatting = await Arg_Assign(all_args)
     
     Common_lib = await compare_func(formatting, members)
 
@@ -366,8 +388,11 @@ async def help(ctx, commandName=None):
 # sends a discord embed that users can page through to view all games and details in database
 # anyone can call to read another persons library
 @discord_client.command()
-async def readlib(ctx, user_mention, formatting=None):
-    UsersLibrary = Library(User=user_mention)
+async def readlib(ctx, *all_args):
+
+    members, formatting = await Arg_Assign(all_args)
+
+    UsersLibrary = Library(User=members)
     
     #sort sheet by game names ascending if they don't ask about hours
     wks.sort((2, 'asc'))
