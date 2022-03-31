@@ -185,8 +185,11 @@ async def array_to_embed(libclass):
 # can compare two or more members at a time
 async def compare_func(formatting, *members):
 
+    #creating empty arrays to appaend data later
     peoples_libs = []
     peoples_games = []
+
+    #loop through each mentioned person to create a library class for each
     for count, person in enumerate(members[0]):
         peoples_libs.append(Library(person))
         if await sheet_data_to_array(peoples_libs[count], formatting) == False:
@@ -225,9 +228,21 @@ async def on_ready():
     await discord_client.change_presence(activity=discord.Activity(type=discord.ActivityType.playing, name=prefix + "help"))
 
 @discord_client.command()
-async def compare(ctx, formatting=None, *members):
+async def compare(ctx, *all_args):
 
+    members = list(filter(lambda arg: "<@!" in arg , all_args))
+
+    if len(members) == len(all_args):
+        formatting = None
+    else:
+        formatting = list(all_args)
+        for member in members:
+            formatting.remove(member)
+        formatting = formatting[0]
+    
     Common_lib = await compare_func(formatting, members)
+
+    response = await ctx.send(embed=Common_lib.CurrentPage())
 
     @discord_client.event
     async def on_reaction_add(reaction, user):

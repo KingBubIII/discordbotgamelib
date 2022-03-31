@@ -92,7 +92,7 @@ class Game:
 class Library:
     # init class variable
     def __init__(self, User=None, data=None):
-        self.User = User.replace('!', '')
+        self.User = User
         self.PageNumber = 0
         if data == None:
             self.data_array = []
