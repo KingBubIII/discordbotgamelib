@@ -265,6 +265,7 @@ async def compare(ctx, *all_args):
     Common_lib = await compare_func(formatting, members)
 
     response = await ctx.send(embed=Common_lib.CurrentPage())
+    await Common_lib.React(response,False)
 
     @discord_client.event
     async def on_reaction_add(reaction, user):
