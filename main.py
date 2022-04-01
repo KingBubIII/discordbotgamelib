@@ -44,11 +44,11 @@ async def Search_func(ctx, search_query, user_query=None, download__func=False):
     results_data = []
     for game in wks_list:
         if user_query == None:
-            if ctx.author.mention.replace("!","") == game[0]:
+            if ctx.author.mention == game[0]:
                     if search_query == None or search_query in game[1].lower():
                         results_data.append(game[1])
         else:
-            if user_query.replace("!","") == game[0]:
+            if user_query == game[0]:
                 if search_query == None or search_query in game[1].lower():
                     results_data.append(game[1])
 
@@ -435,8 +435,7 @@ async def search(ctx, search_query, user_query=None,called_from_download=False):
 @discord_client.command()
 async def steamid(ctx, input_id):
     #takes discord user mention and formats it to where its useable
-    member_name = ctx.author.mention
-    member_name = str(member_name).replace("!","")
+    member_name = str(ctx.author.mention)
     
     #open steam profile info sheet
     wks = wb.get_worksheet(1)
@@ -468,7 +467,6 @@ async def steamid(ctx, input_id):
 @discord_client.command()
 async def _update_lib(ctx, member_name):
     
-    member_name = str(member_name).replace("!","")
     #member_name = ctx.author.mention
     # opens sheet that contains info for steam library access
     wks = wb.get_worksheet(1)
