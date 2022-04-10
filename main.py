@@ -186,7 +186,7 @@ async def Arg_Assign(all_args):
 
     # filters down entire list of arguments down to ones with member character tags '<@!'
     # converts from tuple to list
-    members = list(filter(lambda arg: "<@!" in arg , all_args))
+    members = list(filter(lambda arg: "<@" in arg , all_args))
     
     # checks if there is a format choice or not
     #if no
@@ -391,9 +391,9 @@ async def help(ctx, commandName=None):
 @discord_client.command()
 async def readlib(ctx, *all_args):
 
-    members, formatting = await Arg_Assign(all_args)
+    member, formatting = await Arg_Assign(all_args)
 
-    UsersLibrary = Library(User=members)
+    UsersLibrary = Library(User=member)
     
     #sort sheet by game names ascending if they don't ask about hours
     wks.sort((2, 'asc'))
