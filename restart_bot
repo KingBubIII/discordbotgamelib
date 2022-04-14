@@ -1,0 +1,2 @@
+#!/usr/bin/bash
+sudo systemctl daemon-reload && sudo systemctl restart bot_runner.service 
