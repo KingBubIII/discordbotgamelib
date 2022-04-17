@@ -9,6 +9,7 @@ from bs4 import BeautifulSoup as soup
 from Bot_Classes import *
 import os
 
+#gets current directory for reading security files
 cwd = os.getcwd()
 
 #things to get setup with google, being authorized and whatnot
