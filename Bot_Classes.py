@@ -18,6 +18,7 @@ scope = [
     "https://www.googleapis.com/auth/drive.file","https://www.googleapis.com/auth/drive"]
 
 #credentials in list
+print(cwd)
 creds = ServiceAccountCredentials.from_json_keyfile_name(cwd +"\\creds.json", scope)
 
 #passes in all credentials to make sure changes/ viewing are allowed
