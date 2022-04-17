@@ -289,27 +289,7 @@ async def compare(ctx, *all_args):
 
 @discord_client.command()
 async def download(ctx, download_query=None, user_query=None):
-    wks = wb.get_worksheet(0) #open first sheet
-
-    try: 
-        download_query = int(download_query)
-        
-        #gets the row with game ids
-        id_list =  wks.col_values(4)
-
-        if download_query in id_list:
-            for row, id in enumerate(id_list):
-                if id == download_query:
-                    if ctx.author.mention == wks.cell(row+1,1).value:
-                        wks.update_cell(row+1,7,"Yes")
-                        game_name = wks.cell(row+1,2).value
-                        await ctx.send("```You have downloaded " + game_name + " ```")
-        else:
-            await ctx.send("```That ID does not match any game ID's I have```")
-        
-
-    except (ValueError, TypeError) as e:
-        results = await search(ctx, download_query, user_query, called_from_download=True)
+    results = await search(ctx, download_query, user_query, called_from_download=True)
 
 # A simple command that repeats what was sent
 # mainly useful for debugging 
