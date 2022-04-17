@@ -1,0 +1,9 @@
+on boot runner service path
+/etc/systemd/system/bot_runner.service
+
+paths for security files 
+/creds.json
+/token.txt
+
+command for changing file execution permissions
+sudo chmod +x samplescript.sh 

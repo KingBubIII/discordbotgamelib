@@ -1,5 +1,0 @@
-bot_runner.service
-/etc/systemd/system
-
-/creds.json
-/token.txt
