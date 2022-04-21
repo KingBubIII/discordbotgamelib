@@ -11,10 +11,17 @@ import ast
 from bs4 import BeautifulSoup as soup
 from six import string_types
 from Bot_Classes import *
-import os
+import platform
 
-#gets current directory for reading security files
-cwd = os.getcwd()
+def Correct_path():
+    myos = platform.system()
+
+    if myos == 'Windows':
+        mypath = None
+    elif myos == "Linux":
+        mypath = '/home/kingbubiii/Documents/discordbotgamelib/'
+
+    return mypath
 
 #things to get setup with google, being authorized and whatnot
 scope = [
@@ -22,7 +29,11 @@ scope = [
     "https://www.googleapis.com/auth/drive.file","https://www.googleapis.com/auth/drive"]
 
 #credentials in list
-creds = ServiceAccountCredentials.from_json_keyfile_name(cwd + "creds.json", scope)
+mypath = Correct_path()
+if mypath == None:
+    creds = ServiceAccountCredentials.from_json_keyfile_name("creds.json", scope)
+else:
+    creds = ServiceAccountCredentials.from_json_keyfile_name(mypath + "creds.json", scope)
 
 #passes in all credentials to make sure changes/ viewing are allowed
 sheets_client = gspread.authorize(creds)
@@ -31,7 +42,7 @@ sheets_client = gspread.authorize(creds)
 wb = sheets_client.open('discord_bot_data')
 
 #discord bot token needed to run bot
-TOKEN = str(open(cwd + "token.txt").read())
+TOKEN = str(open("token.txt").read())
 
 #creating client instance and identifying prefix for commands 
 prefix = '>>'
