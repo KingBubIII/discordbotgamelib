@@ -22,7 +22,7 @@ scope = [
     "https://www.googleapis.com/auth/drive.file","https://www.googleapis.com/auth/drive"]
 
 #credentials in list
-creds = ServiceAccountCredentials.from_json_keyfile_name("creds.json", scope)
+creds = ServiceAccountCredentials.from_json_keyfile_name(cwd + "creds.json", scope)
 
 #passes in all credentials to make sure changes/ viewing are allowed
 sheets_client = gspread.authorize(creds)
@@ -31,7 +31,7 @@ sheets_client = gspread.authorize(creds)
 wb = sheets_client.open('discord_bot_data')
 
 #discord bot token needed to run bot
-TOKEN = str(open("token.txt").read())
+TOKEN = str(open(cwd + "token.txt").read())
 
 #creating client instance and identifying prefix for commands 
 prefix = '>>'
