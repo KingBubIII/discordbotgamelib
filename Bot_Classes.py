@@ -7,10 +7,17 @@ import asyncio
 import ast
 from bs4 import BeautifulSoup as soup
 from Bot_Classes import *
-import os
+import platform 
 
-#gets current directory for reading security files
-cwd = os.getcwd()
+def Correct_path():
+    myos = platform.system()
+
+    if myos == 'Windows':
+        mypath = None
+    elif myos == "Linux":
+        mypath = '/home/kingbubiii/Documents/discordbotgamelib/'
+
+    return mypath
 
 #things to get setup with google, being authorized and whatnot
 scope = [
@@ -18,8 +25,11 @@ scope = [
     "https://www.googleapis.com/auth/drive.file","https://www.googleapis.com/auth/drive"]
 
 #credentials in list
-print(cwd)
-creds = ServiceAccountCredentials.from_json_keyfile_name("creds.json", scope)
+mypath = Correct_path()
+if mypath == None:
+    creds = ServiceAccountCredentials.from_json_keyfile_name("creds.json", scope)
+else:
+    creds = ServiceAccountCredentials.from_json_keyfile_name(mypath + "creds.json", scope)
 
 #passes in all credentials to make sure changes/ viewing are allowed
 sheets_client = gspread.authorize(creds)
