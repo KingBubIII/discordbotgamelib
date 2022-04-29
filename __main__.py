@@ -371,9 +371,9 @@ async def help(ctx, commandName=None):
     elif commandName == 'download':
         helpEmbed.title = 'In depth help for'
         helpEmbed.add_field(name = commandName, value = 'This function allows you to mark games as downloaded in my database\n\n\
-                                                        The output is the same as a readlib command but with numbered reaction options\
-                                                        Reacting with a numbered reaction will mark that game on the current page as downloaded\
-                                                        You are the only one that can mark games as downloaded in your library')
+                                                        The output is the same as a readlib command but with numbered reaction options\n\n\
+                                                        Reacting with a numbered reaction will mark that game on the current page as downloaded\n\n\
+                                                        You are the only one that can mark games as downloaded in your library\n\n')
         helpEmbed.add_field(name = 'Examples', value = '>>download')
 
     elif commandName == 'steamid':
@@ -388,9 +388,9 @@ async def help(ctx, commandName=None):
     elif commandName == 'search':
         helpEmbed.title = 'In depth help for'
         helpEmbed.add_field(name = commandName, value = 'Just a basic search function\n\n\
-                                                        The default library to search if you don\'t mention a person is your own\
+                                                        The default library to search if you don\'t mention a person is your own\n\n\
                                                         Be as specific or as general as you would like\n\n\
-                                                        can only search one person\'s library at a time')
+                                                        Can only search one person\'s library at a time\n\n')
         helpEmbed.add_field(name = 'Examples', value = '>>search ba @KingBubIII\n\n\
                                                         >>search ba')
 
