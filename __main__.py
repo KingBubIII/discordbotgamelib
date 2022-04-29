@@ -320,12 +320,13 @@ async def help(ctx, commandName=None):
     if commandName == None:
         helpEmbed.title = 'List of short command descriptions'
         helpEmbed.add_field(name = 'Command Prefix: ', value =  'put this, "' + prefix + '", in front of specified command name to be able to call the command', inline=False)
-        helpEmbed.add_field(name = 'help', value = 'One optional arguement: commandName\nSpecify a command\'s name to get more details on that command', inline=False)
-        helpEmbed.add_field(name = 'echo', value = 'Repeats what you say in a fancy code block', inline=False)
-        helpEmbed.add_field(name = 'readlib', value = 'Allows you and others to read the games you have installed.', inline=False)
-        helpEmbed.add_field(name = 'steamid', value = 'Either creates new profile for member or updates exsisting Steam ID number', inline=False)
-        helpEmbed.add_field(name = 'download', value = 'Page through library to select what games are downloaded locally on your pc', inline=False)
         helpEmbed.add_field(name = 'compare', value = 'Shows common games between all mentioned people in pagified version like reading a library', inline=False)
+        helpEmbed.add_field(name = 'download', value = 'Page through library to select what games are downloaded locally on your pc', inline=False)
+        helpEmbed.add_field(name = 'echo', value = 'Repeats what you say in a fancy code block', inline=False)
+        helpEmbed.add_field(name = 'help', value = 'One optional arguement: commandName\nSpecify a command\'s name to get more details on that command', inline=False)
+        helpEmbed.add_field(name = 'readlib', value = 'Allows you and others to read the games you have installed.', inline=False)
+        helpEmbed.add_field(name = 'search', value = 'Returns list of games in anyone\'s library that matches your search term', inline=False)
+        helpEmbed.add_field(name = 'steamid', value = 'Either creates new profile for member or updates exsisting Steam ID number', inline=False)
         #helpEmbed.add_field(name = 'download', value = '', inline=False)
 
 
@@ -369,8 +370,11 @@ async def help(ctx, commandName=None):
 
     elif commandName == 'download':
         helpEmbed.title = 'In depth help for'
-        helpEmbed.add_field(name = commandName, value = 'explain')
-        helpEmbed.add_field(name = 'Examples', value = 'stuff')
+        helpEmbed.add_field(name = commandName, value = 'This function allows you to mark games as downloaded in my database\n\n\
+                                                        The output is the same as a readlib command but with numbered reaction options\
+                                                        Reacting with a numbered reaction will mark that game on the current page as downloaded\
+                                                        You are the only one that can mark games as downloaded in your library')
+        helpEmbed.add_field(name = 'Examples', value = '>>download')
 
     elif commandName == 'steamid':
         helpEmbed.title = 'In depth help for'
@@ -383,8 +387,17 @@ async def help(ctx, commandName=None):
 
     elif commandName == 'search':
         helpEmbed.title = 'In depth help for'
-        helpEmbed.add_field(name = commandName, value = 'explain')
-        helpEmbed.add_field(name = 'Examples', value = 'stuff')
+        helpEmbed.add_field(name = commandName, value = 'Just a basic search function\n\n\
+                                                        The default library to search if you don\'t mention a person is your own\
+                                                        Be as specific or as general as you would like\n\n\
+                                                        can only search one person\'s library at a time')
+        helpEmbed.add_field(name = 'Examples', value = '>>search ba @KingBubIII\n\n\
+                                                        >>search ba')
+
+    #elif commandName == '':
+        #helpEmbed.title = 'In depth help for'
+        #helpEmbed.add_field(name = commandName, value = 'explain')
+        #helpEmbed.add_field(name = 'Examples', value = 'stuff')
 
     await ctx.send(embed=helpEmbed)
 
