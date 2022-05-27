@@ -119,7 +119,7 @@ class Library:
         self.GameCount = len(self.Embeds)
         #creates a copy of the basic page
         self.Page = self.NewEmbed()
-        self.InitialReacts = ['⏪', '⏩']
+        self.NavigationReacts = ['⏪', '⏩']
         self.DownloadReacts = ['1️⃣','2️⃣','3️⃣','4️⃣','5️⃣']
 
     # add an embed page
@@ -155,25 +155,25 @@ class Library:
         return self.Embeds[self.PageNumber]
 
     # defines what reactions do what when a member uses them
-    async def React(self, response, download):
+    async def React(self, response, called_from):
         #checks if there is embeds to show
         if len(self.Embeds) > 1:
             # if its the first page only add the forward reaction
             if self.PageNumber == 0:
                 # reacts with emoji
-                await response.add_reaction(self.InitialReacts[1])
+                await response.add_reaction(self.NavigationReacts[1])
             # if its the last page only add the backward reaction
             elif self.PageNumber == len(self.Embeds)-1:
                 # reacts with emoji
-                await response.add_reaction(self.InitialReacts[0])
+                await response.add_reaction(self.NavigationReacts[0])
             # if its any page besides first or last then add all reactions
             else:
                 #loops through all reactions
-                for emoji in self.InitialReacts:
+                for emoji in self.NavigationReacts:
                     # reacts with emoji
                     await response.add_reaction(emoji)
         # if the member wants to mark games as downloaded in the data base
-        if download == True:
+        if called_from == 'Download' or called_from == 'Unistall':
             # loop though each download reaction
             # 1 - 5 emojis "downloads" the respective game shown in the list
             for emoji in self.DownloadReacts:

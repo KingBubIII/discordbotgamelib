@@ -55,92 +55,105 @@ discord_client = commands.Bot(command_prefix=prefix)
 discord_client.remove_command('help')
 
 # allows users to search libraries, their own or others, for game names
-async def Search_func(ctx, search_query, user_query=None, download__func=False):
+async def Search_func(ctx, search_query, user_query=None, called_from=False):
+    #open worksheet
     wks = wb.get_worksheet(0)
 
+    #get entire worksheet in one variable
     wks_list = wks.get_all_values()
 
     results_data = []
+    #iterates though entire sheet by row
     for game in wks_list:
+        #default user to search for in command author
         if user_query == None:
+            #checks if game row member name matches with command author 
             if ctx.author.mention == game[0]:
-                    if search_query == None or search_query in game[1].lower():
-                        results_data.append(game[1])
-        else:
-            if user_query == game[0]:
+                #checks if game name query match any part of current row game name
                 if search_query == None or search_query in game[1].lower():
+                    #add current row data to results array
+                    results_data.append(game[1])
+        else:
+            #checks if game row member name matches with user query name
+            if user_query == game[0]:
+                #checks if game name query match any part of current row game name
+                if search_query == None or search_query in game[1].lower():
+                    #add current row data to results array
                     results_data.append(game[1])
 
+    #creates a new library from results list 
     results_lib = Library(User="results",data=results_data)
 
+    #creates embed from result class
     await array_to_embed(results_lib)
 
+    #send first page of results embed back to member
     response = await ctx.send(embed=results_lib.CurrentPage())
-    await results_lib.React(response,download__func)
+    #reacts with navigation emojis and database modification emojis if applicable
+    await results_lib.React(response,called_from)
     
+    #function for when a member reacts
     @discord_client.event
     async def on_reaction_add(reaction, user):
+        #checks if the member is not the bot itself
+        #prevents looping on itself
         if user != discord_client.user:
-            if download__func == True:
-                if reaction.emoji == results_lib.DownloadReacts[0]:
-                    game_name = results_lib.data_array[0 + (5*results_lib.PageNumber)]
 
-                    for row, row_game_name in enumerate(wks.col_values(2)):
-                        if game_name == row_game_name:
-                            if wks.cell(row+1,1).value == user.mention:
-                                wks.update_cell(row+1,7,"Yes")
-                                await ctx.send("```" + game_name + " has been marked as downloaded```")
-                                break
-                
-                if reaction.emoji == results_lib.DownloadReacts[1]:
-                    game_name = results_lib.data_array[1 + (5*results_lib.PageNumber)]
-                    for row, row_game_name in enumerate(wks.col_values(2)):
-                        if game_name == row_game_name:
-                            if wks.cell(row+1,1).value == user.mention:
-                                wks.update_cell(row+1,7,"Yes")
-                                await ctx.send("```" + game_name + " has been marked as downloaded```")
-                                break
+            #temparary variable
+            reaction_num = None
 
-                if reaction.emoji == results_lib.DownloadReacts[2]:
-                    game_name = results_lib.data_array[2 + (5*results_lib.PageNumber)]
-                    for row, row_game_name in enumerate(wks.col_values(2)):
-                        if game_name == row_game_name:
-                            if wks.cell(row+1,1).value == user.mention:
-                                wks.update_cell(row+1,7,"Yes")
-                                await ctx.send("```" + game_name + " has been marked as downloaded```")
-                                break
+            #gets reaction index
+            for count, item in enumerate(results_lib.DownloadReacts):
+                if reaction.emoji == item:
+                    reaction_num = count
+            
+            #doesn't interat with database if member is just changing pages
+            if not reaction_num == None:
+                #select game for memeber to change personal data
+                game_name = results_lib.data_array[reaction_num + (5*results_lib.PageNumber)]
 
-                if reaction.emoji == results_lib.DownloadReacts[3]:
-                    game_name = results_lib.data_array[3 + (5*results_lib.PageNumber)]
-                    for row, row_game_name in enumerate(wks.col_values(2)):
-                        if game_name == row_game_name:
-                            if wks.cell(row+1,1).value == user.mention:
-                                wks.update_cell(row+1,7,"Yes")
-                                await ctx.send("```" + game_name + " has been marked as downloaded```")
-                                break
+                #iterates through entire database one row at a time 
+                for row, row_game_name in enumerate(wks.col_values(2)):
 
-                if reaction.emoji == results_lib.DownloadReacts[4]:
-                    game_name = results_lib.data_array[4 + (5*results_lib.PageNumber)]
-
-                    for row, row_game_name in enumerate(wks.col_values(2)):
-                        if game_name == row_game_name:
-                            if wks.cell(row+1,1).value == user.mention:
-                                wks.update_cell(row+1,7,"Yes")
-                                await ctx.send("```" + game_name + " has been marked as downloaded```")
-                                break
-
-            if reaction.emoji == results_lib.InitialReacts[1]:
+                    #looking for selected game row
+                    if game_name == row_game_name:
+                        #checks if reaction author and library owner match
+                        if wks.cell(row+1,1).value == user.mention:
+                            #init state value 
+                            state = ''
+                            #determines output message and database value
+                            if called_from == 'Download':
+                                state = 'Yes'
+                            elif called_from == 'Unistall':
+                                state = 'No'
+                                #updates proper cell
+                            wks.update_cell(row+1,7,state)
+                            #send message to member that database has been updated
+                            await ctx.send("```" + game_name + " has been marked as {0}downloaded```".format("" if state == "Yes" else "not "))
+                            #exits loop
+                            break
+            
+            #if forward emoji
+            if reaction.emoji == results_lib.NavigationReacts[1]:
+                #delete last embed
                 await reaction.message.delete()
+                #increment current page
                 results_lib.NextPage()
+                #resend current page
                 response = await ctx.send(embed=results_lib.CurrentPage())
-                await results_lib.React(response,download__func)
-
-            if reaction.emoji == results_lib.InitialReacts[0]:
+                #send apprioprate reactions again
+                await results_lib.React(response,called_from)
+            #if backward emoji
+            if reaction.emoji == results_lib.NavigationReacts[0]:
+                #delete last embed
                 await reaction.message.delete()
+                #decrement current page
                 results_lib.PreviousPage()
+                #resend current page
                 response = await ctx.send(embed=results_lib.CurrentPage())
-                await results_lib.React(response,download__func)
-
+                #send apprioprate reactions again
+                await results_lib.React(response,called_from)
+    #send result embed
     return response
 
 # accesses the database to recall info on games to create a library class
@@ -290,20 +303,22 @@ async def compare(ctx, *all_args):
     async def on_reaction_add(reaction, user):
         if user != discord_client.user:
             
-            if reaction.emoji == Common_lib.InitialReacts[1]:
+            if reaction.emoji == Common_lib.NavigationReacts[1]:
                 await reaction.message.delete()
                 Common_lib.NextPage()
 
-            if reaction.emoji == Common_lib.InitialReacts[0]:
+            if reaction.emoji == Common_lib.NavigationReacts[0]:
                 await reaction.message.delete()
                 Common_lib.PreviousPage()
                 
             response = await ctx.send(embed=Common_lib.CurrentPage())
             await Common_lib.React(response,False)
 
+#member command to update database games as downloaded
 @discord_client.command()
 async def download(ctx, download_query=None, user_query=None):
-    results = await search(ctx, download_query, user_query, called_from_download=True)
+    #calls search command with 'Download' perameter
+    results = await search(ctx, download_query, user_query, called_from='Download')
 
 # A simple command that repeats what was sent
 # mainly useful for debugging 
@@ -431,11 +446,11 @@ async def readlib(ctx, *all_args):
         async def on_reaction_add(reaction, user):
             if user != discord_client.user:
                 
-                if reaction.emoji == UsersLibrary.InitialReacts[1]:
+                if reaction.emoji == UsersLibrary.NavigationReacts[1]:
                     await reaction.message.delete()
                     UsersLibrary.NextPage()
 
-                if reaction.emoji == UsersLibrary.InitialReacts[0]:
+                if reaction.emoji == UsersLibrary.NavigationReacts[0]:
                     await reaction.message.delete()
                     UsersLibrary.PreviousPage()
                     
@@ -444,8 +459,9 @@ async def readlib(ctx, *all_args):
 
 # runs the Search_func command
 @discord_client.command()
-async def search(ctx, search_query, user_query=None,called_from_download=False):
-    response = await Search_func(ctx, search_query, user_query, called_from_download)
+async def search(ctx, search_query, user_query=None,called_from=False):
+    #runs search command without being intention to change database values 
+    response = await Search_func(ctx, search_query, user_query, called_from)
 
 @discord_client.command()
 async def steamid(ctx, input_id):
@@ -568,6 +584,12 @@ async def _update_lib(ctx, member_name):
 @discord_client.command()
 async def random(ctx, *members):
     pass
+
+"""
+@discord_client.command()
+async def unistall(ctx, game_query=None, user_query=None):
+    results = await change_download_status(game_query, user_query, called_from='Unistall')
+"""
 
 #discord_client.loop.create_task(update_libs())
 discord_client.run(TOKEN)
