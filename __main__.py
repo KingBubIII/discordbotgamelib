@@ -124,7 +124,7 @@ async def Search_func(ctx, search_query, user_query=None, called_from=False):
                             #determines output message and database value
                             if called_from == 'Download':
                                 state = 'Yes'
-                            elif called_from == 'Unistall':
+                            elif called_from == 'Uninstall':
                                 state = 'No'
                                 #updates proper cell
                             wks.update_cell(row+1,7,state)
@@ -585,11 +585,9 @@ async def _update_lib(ctx, member_name):
 async def random(ctx, *members):
     pass
 
-"""
 @discord_client.command()
-async def unistall(ctx, game_query=None, user_query=None):
-    results = await change_download_status(game_query, user_query, called_from='Unistall')
-"""
+async def uninstall(ctx, game_query=None, user_query=None):
+    results = await search(ctx, game_query, user_query, called_from='Uninstall')
 
 #discord_client.loop.create_task(update_libs())
 discord_client.run(TOKEN)

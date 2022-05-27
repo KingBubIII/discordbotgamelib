@@ -173,7 +173,7 @@ class Library:
                     # reacts with emoji
                     await response.add_reaction(emoji)
         # if the member wants to mark games as downloaded in the data base
-        if called_from == 'Download' or called_from == 'Unistall':
+        if called_from == 'Download' or called_from == 'Uninstall':
             # loop though each download reaction
             # 1 - 5 emojis "downloads" the respective game shown in the list
             for emoji in self.DownloadReacts:
