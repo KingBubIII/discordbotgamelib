@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+from cgitb import reset
 from typing import List
 import discord
 from discord.ext import commands
@@ -12,6 +13,7 @@ from bs4 import BeautifulSoup as soup
 from six import string_types
 from Bot_Classes import *
 import platform
+import random as rd
 
 def Correct_path():
     myos = platform.system()
@@ -583,7 +585,27 @@ async def _update_lib(ctx, member_name):
 # will give a common game suggestion between all mentioned members
 @discord_client.command()
 async def random(ctx, *members):
-    pass
+    #get a result class
+    result = await compare_func('-d', members)
+
+    #empty list init
+    common_downloaded = []
+
+    #iterate through list one game at a time
+    for item in result.data_array:
+        #checks if both people have the game downloaded
+        if 'Yes\n'*len(members) == item[1].replace('Downloaded: ', ''):
+            #add to temparary list to choose from later
+            common_downloaded.append(item)
+    
+    #select random element in the list, therefore random game
+    random_game = rd.choice(common_downloaded)
+    #create new embed variable
+    single_embed = discord.Embed(title = "Random Game", description = 'Choices are from downloaded only games' , color = discord.Color.blue())
+    #add field with chosen game name
+    single_embed.add_field(name = 'Random Game: ', value = random_game[0] , inline=False)
+    #send chosen game embed
+    await ctx.send(embed=single_embed)
 
 @discord_client.command()
 async def uninstall(ctx, game_query=None, user_query=None):
