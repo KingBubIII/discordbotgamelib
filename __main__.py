@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 from cgitb import reset
+from threading import TIMEOUT_MAX
 from typing import List
 import discord
 from discord.ext import commands
@@ -14,6 +15,7 @@ from six import string_types
 from Bot_Classes import *
 import platform
 import random as rd
+import Rpi_db as db
 
 def Correct_path():
     myos = platform.system()
@@ -326,6 +328,8 @@ async def download(ctx, download_query=None, user_query=None):
 # mainly useful for debugging 
 @discord_client.command() 
 async def echo(ctx, *, msg='echo'):
+    #await ctx.send(f"""```In {ctx.author.name}\'s voice: {msg}```""")
+    #await ctx.send(f"""```{ctx.guild}```""")
     await ctx.send(f"""```{msg}```""")
 
 # teaches members how to use bot
@@ -560,15 +564,20 @@ async def _update_lib(ctx, member_name):
                 page_soup = soup(page_html, "html.parser")
 
                 json_script = page_soup.find_all("a", class_="app_tag")
-                
+                tags = []
                 for index in range(len(json_script)):
-                    tag = json_script[index].next.replace('\n', ' ').replace('\r', '').replace('\t', '').replace(' ', '')
+                    tag = json_script[index].next.replace('\n', '').replace('\r', '').replace('\t', '')
+                    tags.append(tag)
+                    db_multiplayer = False
                     if tag == "Multiplayer":
                         useful_game_info[5] = "Yes"
-                        break
+                        db_multiplayer = True
                 #loops through each row in the games sheet to update and add new games to sheet
                 row_count = 1
                 
+                #updates Rpi database
+                db.update_db(game_info_dict,', '.join(tags), db_multiplayer)
+
                 for row in current_sheet:
                     if row[:2] == useful_game_info[:2]:
                         wks.update_cell(row_count, 3, useful_game_info[2])
