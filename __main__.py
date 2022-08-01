@@ -585,16 +585,6 @@ async def _update_lib(ctx, member_name):
                 #updates Rpi database
                 member_class = await get_user_class(member_name)
                 db.update_db(ctx.guild.name, member_class.name ,game_info_dict,', '.join(tags), db_multiplayer)
-
-                for row in current_sheet:
-                    if row[:2] == useful_game_info[:2]:
-                        wks.update_cell(row_count, 3, useful_game_info[2])
-                    row_count+=1
-                for row in current_sheet:
-                    del row[2:]
-                    row = list(set(row))
-                if not useful_game_info[:2] in current_sheet:
-                    wks.append_row(useful_game_info,'RAW')
             #await ctx.send("```I do not have a Steam ID for you, please go input one with the 'steamid' command```")
             
         await ctx.send("```Your library has been updated```")
