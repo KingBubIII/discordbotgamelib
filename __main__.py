@@ -53,7 +53,10 @@ else:
 
 #creating client instance and identifying prefix for commands 
 prefix = '>>'
-discord_client = commands.Bot(command_prefix=prefix)
+intents = discord.Intents.default()
+intents.members = True
+
+discord_client = commands.Bot(command_prefix=prefix, intents=intents)
 #discord_client.case_insensitive = True
 #removing default help command
 discord_client.remove_command('help')
@@ -286,6 +289,10 @@ async def compare_func(formatting, *members):
     await array_to_embed(Common_lib)
     return Common_lib
 
+async def get_user_class(member_id_str):
+    member_class = discord_client.get_user(int(member_id_str.replace('<@','').replace('>','')))
+    return member_class
+
 #signaling the bot is online and ready to be used
 #Setting the help command to be what the bot is "playing"
 @discord_client.event
@@ -328,7 +335,7 @@ async def download(ctx, download_query=None, user_query=None):
 # mainly useful for debugging 
 @discord_client.command() 
 async def echo(ctx, *, msg='echo'):
-    #await ctx.send(f"""```In {ctx.author.name}\'s voice: {msg}```""")
+    #await ctx.send(f"""```{ctx.author.id}: {msg}```""")
     #await ctx.send(f"""```{ctx.guild}```""")
     await ctx.send(f"""```{msg}```""")
 
@@ -576,7 +583,8 @@ async def _update_lib(ctx, member_name):
                 row_count = 1
                 
                 #updates Rpi database
-                db.update_db(game_info_dict,', '.join(tags), db_multiplayer)
+                member_class = await get_user_class(member_name)
+                db.update_db(ctx.guild.name, member_class.name ,game_info_dict,', '.join(tags), db_multiplayer)
 
                 for row in current_sheet:
                     if row[:2] == useful_game_info[:2]:
