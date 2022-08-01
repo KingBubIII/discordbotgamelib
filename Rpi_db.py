@@ -108,7 +108,3 @@ def profile_update(discord_id, steam_id):
     cursor.execute(command)
     conn.commit()
     return new_profile
-
-#show the table
-#show_table("server","member")
-#print('works')
