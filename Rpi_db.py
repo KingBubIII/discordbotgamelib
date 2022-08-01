@@ -88,6 +88,27 @@ def update_db(server, discord_name, game_info_dict, tags, multiplayer):
         
     conn.commit()
 
+
+def profile_update(discord_id, steam_id):
+    change_db('masterData')
+    command = "SELECT discordID FROM members"
+    cursor.execute(command)
+    all_ids = cursor.fetchall()
+    all_ids = [id[0] for id in all_ids]
+
+    new_profile = None
+    
+    if not discord_id in all_ids:
+        command = "INSERT INTO members (discordID, steamID) VALUES (\'{0}\', \'{1}\')".format(discord_id, steam_id)
+        new_profile = True
+    else:
+        command = "UPDATE members SET steamID=\'{0}\' WHERE discordID=\'{1}\'".format(steam_id, discord_id)
+        new_profile = False
+
+    cursor.execute(command)
+    conn.commit()
+    return new_profile
+
 #show the table
 #show_table("server","member")
 #print('works')
