@@ -162,3 +162,11 @@ def format_details(server, libclass, formatting=None):
         data = [game[1],formatted_details]
         #add game and the details that have been formatted to library class data
         libclass.data_array.append(data)
+
+def get_steam_link(member_class):
+    change_db('masterData')
+    command = 'SELECT steamID FROM members WHERE discordID={0}'.format(member_class.id)
+    cursor.execute(command)
+    steam_id = cursor.fetchone()[0]
+    link = "https://steamcommunity.com/profiles/" + str(steam_id) + "/games/?tab=all"
+    return link
