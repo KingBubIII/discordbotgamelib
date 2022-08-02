@@ -1,6 +1,8 @@
 import pymysql
 import ast
 
+from scipy.fft import idct
+
 #connects to database using username and password
 conn = pymysql.connect(user='beastPC', password='SunTitan6//6', host='192.168.1.117')
 #cursor allows for commands to be run and collects outputs
@@ -108,3 +110,55 @@ def profile_update(discord_id, steam_id):
     cursor.execute(command)
     conn.commit()
     return new_profile
+
+def format_details(server, libclass, formatting=None):
+    #select server database
+    change_db(server)
+    #chose order despending on if the hours formatting option is shown
+    orderby = 'mD.gameName ASC' if (formatting==None or not 'h' in formatting) else 'sD.hours DESC'
+    #get a list of each game in the library and its master data with it 
+    command = "SELECT mD.*, sD.* FROM masterData.games AS mD, `{0}`.`{1}` as sD WHERE mD.steamID = sD.gameID ORDER BY {2}".format(server, libclass.User, orderby)
+    cursor.execute(command)
+    #get the result
+    all_games = cursor.fetchall()
+
+    #loop through each game
+    for game in all_games:
+        #chose human readable outputs
+        downloaded = 'Yes' if game[6] else "No"
+        hours = str(game[5])
+        multiplayer = 'Yes' if game[2] else "No"
+        tags = game[3]
+        formatted_details = ""
+
+        #default choice if no formatting option is specified
+        if formatting == None:
+            formatted_details = 'Downloaded: ' + downloaded
+        #user specified formatting
+        else:
+            #loops through each choice
+            for char in formatting:
+                #formats all details if 'a' is selected
+                if char == 'a':
+                    formatted_details += 'Hours: '+hours+'\n'+'Online: '+multiplayer+'\n'+'Downloaded: '+downloaded +'\n'+ 'Tags: ' + tags
+                    break
+                #other options format their respective details
+                else:
+                    #hour count playing the game
+                    if char == 'h':
+                        formatted_details += 'Hours: ' + hours
+                    #shows if its multiplayer compatable
+                    if char == 'o':
+                        formatted_details += 'Online: ' + multiplayer
+                    #shows if the mentioned user currently has it downloaded
+                    if char == 'd':
+                        formatted_details += 'Downloaded: ' + downloaded
+                    if char == 't':
+                        formatted_details += 'Tags: ' + tags
+                    #adds new line character after each detail is formated for readability
+                    if not char == formatting[-1]:
+                        formatted_details += '\n'
+        #temperary array
+        data = [game[1],formatted_details]
+        #add game and the details that have been formatted to library class data
+        libclass.data_array.append(data)

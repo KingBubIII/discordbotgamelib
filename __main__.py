@@ -92,7 +92,7 @@ async def Search_func(ctx, search_query, user_query=None, called_from=False):
     results_lib = Library(User="results",data=results_data)
 
     #creates embed from result class
-    await array_to_embed(results_lib)
+    await create_embeds(results_lib)
 
     #send first page of results embed back to member
     response = await ctx.send(embed=results_lib.CurrentPage())
@@ -163,46 +163,8 @@ async def Search_func(ctx, search_query, user_query=None, called_from=False):
     #send result embed
     return response
 
-# accesses the database to recall info on games to create a library class
-async def sheet_data_to_array(libclass, formatting=None):
-    #open first sheet
-    wks = wb.get_worksheet(0)
-    #gets the whole game data worksheet as a single variable to be accessable with one read 
-    current_sheet = wks.get_all_values()
-    #gets the number of games the user has for the program to know when to stop looking for more games
-    num_of_games = len(wks.findall(libclass.User))
-
-
-    #defaults to just the downloaded format option 
-    if formatting == None:
-        #looks at each row of the whole sheet individually
-        for row in current_sheet:
-            #skips the very first row of the sheet to skip the row headers
-            if not row == current_sheet[0]:
-                #creates an instance of the game class to make information more readable and accessable
-                item = Game(row)
-                #makes sure the owner of the current game instace is the user that was specified in the command
-                if item.Owner == libclass.User:
-                    #adds a field per game to the embed with the downloaded status
-                    libclass.data_array.append((item.FullName,'Downloaded: ' + item.Downloaded))
-
-    elif formatting[0] == '-':
-        validQuery = True
-        
-        for char in formatting[1::]:
-            if not char in ['f','n','a','h','s','o','d','i']:
-                return False
-
-        if validQuery == True:
-            for row in current_sheet:
-                if not row == current_sheet[0]:
-                    item = Game(row)
-                    if item.Owner == libclass.User:
-                        game_details = item.Format_Details(formatting)
-                        libclass.data_array.append((game_details[0],game_details[1]))
-
 # formats serveral pages of embeds using the format details specified by user
-async def array_to_embed(libclass):
+async def create_embeds(libclass):
     if type(libclass.data_array[0]) == list or type(libclass.data_array[0]) == tuple:
         for count, game in enumerate(libclass.data_array):
             #adds a field per game to the embed with the downloaded status
@@ -286,7 +248,7 @@ async def compare_func(formatting, *members):
                     temp[1] += item[1] + "\n"
         games_with_embed_data.append(temp)
     Common_lib = Library(User = "Common Games",data= games_with_embed_data)
-    await array_to_embed(Common_lib)
+    await create_embeds(Common_lib)
     return Common_lib
 
 async def get_user_class(member_id_str):
@@ -435,40 +397,33 @@ async def help(ctx, commandName=None):
 async def readlib(ctx, *all_args):
 
     member, formatting = await Arg_Assign(all_args)
-
-    UsersLibrary = Library(User=member)
+    member = await get_user_class(member)
+    UsersLibrary = Library(User=member.name)
+    """
+        if await sheet_data_to_array(UsersLibrary, formatting) == False:
+            await ctx.send("```Selected formatting is not an option```")
+        else:
+    """
+    db.format_details(ctx.guild, UsersLibrary, formatting)
+    await create_embeds(UsersLibrary)
     
-    #sort sheet by game names ascending if they don't ask about hours
-    wks.sort((2, 'asc'))
+    response = await ctx.send(embed=UsersLibrary.CurrentPage())
+    await UsersLibrary.React(response,False)
 
-    if not formatting == None:
-        #sort sheet by number of hours descending if they ask about hours
-        if 'h' in formatting:
-            wks.sort((3, 'des'))
+    @discord_client.event
+    async def on_reaction_add(reaction, user):
+        if user != discord_client.user:
+            
+            if reaction.emoji == UsersLibrary.NavigationReacts[1]:
+                await reaction.message.delete()
+                UsersLibrary.NextPage()
 
-    if await sheet_data_to_array(UsersLibrary, formatting) == False:
-        await ctx.send("```Selected formatting is not an option```")
-    else:
-
-        await array_to_embed(UsersLibrary)
-        
-        response = await ctx.send(embed=UsersLibrary.CurrentPage())
-        await UsersLibrary.React(response,False)
-
-        @discord_client.event
-        async def on_reaction_add(reaction, user):
-            if user != discord_client.user:
+            if reaction.emoji == UsersLibrary.NavigationReacts[0]:
+                await reaction.message.delete()
+                UsersLibrary.PreviousPage()
                 
-                if reaction.emoji == UsersLibrary.NavigationReacts[1]:
-                    await reaction.message.delete()
-                    UsersLibrary.NextPage()
-
-                if reaction.emoji == UsersLibrary.NavigationReacts[0]:
-                    await reaction.message.delete()
-                    UsersLibrary.PreviousPage()
-                    
-                response = await ctx.send(embed=UsersLibrary.CurrentPage())
-                await UsersLibrary.React(response,False)
+            response = await ctx.send(embed=UsersLibrary.CurrentPage())
+            await UsersLibrary.React(response,False)
 
 # runs the Search_func command
 @discord_client.command()
