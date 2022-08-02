@@ -198,4 +198,3 @@ def search(server, member, query):
             downloaded = 'Yes' if local_match[0][2] else "No"
             name_matches.append([game[1],format_details().replace('(d)',downloaded)])
     return name_matches
-    #print(result)
