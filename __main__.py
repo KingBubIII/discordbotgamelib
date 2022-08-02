@@ -63,31 +63,15 @@ discord_client.remove_command('help')
 
 # allows users to search libraries, their own or others, for game names
 async def Search_func(ctx, search_query, user_query=None, called_from=False):
-    #open worksheet
-    wks = wb.get_worksheet(0)
-
-    #get entire worksheet in one variable
-    wks_list = wks.get_all_values()
-
-    results_data = []
-    #iterates though entire sheet by row
-    for game in wks_list:
-        #default user to search for in command author
-        if user_query == None:
-            #checks if game row member name matches with command author 
-            if ctx.author.mention == game[0]:
-                #checks if game name query match any part of current row game name
-                if search_query == None or search_query in game[1].lower():
-                    #add current row data to results array
-                    results_data.append(game[1])
-        else:
-            #checks if game row member name matches with user query name
-            if user_query == game[0]:
-                #checks if game name query match any part of current row game name
-                if search_query == None or search_query in game[1].lower():
-                    #add current row data to results array
-                    results_data.append(game[1])
-
+    if user_query == None:
+        member = ctx.author.name
+    else:
+        member = get_user_class(user_query)
+    results_data = db.search(ctx.guild, member, search_query)
+    #print(results_data)
+    if len(results_data) == 0:
+        await ctx.send('```I found no matches```')
+        return False
     #creates a new library from results list 
     results_lib = Library(User="results",data=results_data)
 
@@ -170,7 +154,7 @@ async def create_embeds(libclass):
             #adds a field per game to the embed with the downloaded status
             libclass.Page.add_field(name=game[0], value=game[1], inline=False)
             # checks to make sure there is only 5 games per page of the library so it doesnt get overwhelming and the embed cant hold the whole library
-            if (count%libclass.MaxGamesOnPage == 0 and count > 0) or count - len(libclass.data_array) == 0:
+            if (count%libclass.MaxGamesOnPage == 0 and count > 0) or count+1 - len(libclass.data_array) == 0:
                 libclass.AddPage()
     elif type(libclass.data_array[0]) == str:
         for count, game in enumerate(libclass.data_array):
@@ -404,7 +388,7 @@ async def readlib(ctx, *all_args):
             await ctx.send("```Selected formatting is not an option```")
         else:
     """
-    db.format_details(ctx.guild, UsersLibrary, formatting)
+    db.readlib(ctx.guild, UsersLibrary, formatting)
     await create_embeds(UsersLibrary)
     
     response = await ctx.send(embed=UsersLibrary.CurrentPage())
@@ -513,10 +497,10 @@ async def _update_lib(ctx, member_name):
 
                 json_script = page_soup.find_all("a", class_="app_tag")
                 tags = []
+                db_multiplayer = False
                 for index in range(len(json_script)):
                     tag = json_script[index].next.replace('\n', '').replace('\r', '').replace('\t', '')
                     tags.append(tag)
-                    db_multiplayer = False
                     if tag == "Multiplayer":
                         useful_game_info[5] = "Yes"
                         db_multiplayer = True

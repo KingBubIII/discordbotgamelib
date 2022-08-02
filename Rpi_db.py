@@ -111,7 +111,38 @@ def profile_update(discord_id, steam_id):
     conn.commit()
     return new_profile
 
-def format_details(server, libclass, formatting=None):
+def format_details(formatting=None):
+    formatted_details = ""
+    #default choice if no formatting option is specified
+    if formatting == None:
+        formatted_details = 'Downloaded: (d)'
+    #user specified formatting
+    else:
+        #loops through each choice
+        for char in formatting:
+            #formats all details if 'a' is selected
+            if char == 'a':
+                formatted_details += 'Hours: (h)'+'\n'+'Online: (o)'+'\n'+'Downloaded: (d)' +'\n'+ 'Tags: (t)'
+                break
+            #other options format their respective details
+            else:
+                #hour count playing the game
+                if char == 'h':
+                    formatted_details += 'Hours: (h)'
+                #shows if its multiplayer compatable
+                if char == 'o':
+                    formatted_details += 'Online: (o)'
+                #shows if the mentioned user currently has it downloaded
+                if char == 'd':
+                    formatted_details += 'Downloaded: (d)'
+                if char == 't':
+                    formatted_details += 'Tags: (t)'
+                #adds new line character after each detail is formated for readability
+                if not char == formatting[-1]:
+                    formatted_details += '\n'
+    return formatted_details
+
+def readlib(server, libclass, formatting=None):
     #select server database
     change_db(server)
     #chose order despending on if the hours formatting option is shown
@@ -129,35 +160,9 @@ def format_details(server, libclass, formatting=None):
         hours = str(game[5])
         multiplayer = 'Yes' if game[2] else "No"
         tags = game[3]
-        formatted_details = ""
-
-        #default choice if no formatting option is specified
-        if formatting == None:
-            formatted_details = 'Downloaded: ' + downloaded
-        #user specified formatting
-        else:
-            #loops through each choice
-            for char in formatting:
-                #formats all details if 'a' is selected
-                if char == 'a':
-                    formatted_details += 'Hours: '+hours+'\n'+'Online: '+multiplayer+'\n'+'Downloaded: '+downloaded +'\n'+ 'Tags: ' + tags
-                    break
-                #other options format their respective details
-                else:
-                    #hour count playing the game
-                    if char == 'h':
-                        formatted_details += 'Hours: ' + hours
-                    #shows if its multiplayer compatable
-                    if char == 'o':
-                        formatted_details += 'Online: ' + multiplayer
-                    #shows if the mentioned user currently has it downloaded
-                    if char == 'd':
-                        formatted_details += 'Downloaded: ' + downloaded
-                    if char == 't':
-                        formatted_details += 'Tags: ' + tags
-                    #adds new line character after each detail is formated for readability
-                    if not char == formatting[-1]:
-                        formatted_details += '\n'
+        formatted_details = format_details(formatting)
+        formatted_details = formatted_details.replace('(d)',downloaded).replace('(h)',hours).replace('(o)',multiplayer).replace('(t)',tags)
+        
         #temperary array
         data = [game[1],formatted_details]
         #add game and the details that have been formatted to library class data
@@ -170,3 +175,27 @@ def get_steam_link(member_class):
     steam_id = cursor.fetchone()[0]
     link = "https://steamcommunity.com/profiles/" + str(steam_id) + "/games/?tab=all"
     return link
+
+def search(server, member, query):
+    name_matches = []
+    change_db('masterData')
+    command = 'SELECT * FROM games WHERE gameName LIKE \'{0}%\''.format(query)
+    if len(query) > 1:
+        command = command.replace('\'','\'%',1)
+    cursor.execute(command)
+    master_matches = cursor.fetchall()
+
+    change_db(server)
+    
+    for game in master_matches:
+        command = 'SELECT * FROM {0} WHERE gameID=\'{1}\''.format(member, game[0])
+        cursor.execute(command)
+        local_match = cursor.fetchall()
+
+        if len(local_match) == 0:
+            continue
+        else:
+            downloaded = 'Yes' if local_match[0][2] else "No"
+            name_matches.append([game[1],format_details().replace('(d)',downloaded)])
+    return name_matches
+    #print(result)
