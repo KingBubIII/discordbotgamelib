@@ -64,10 +64,10 @@ discord_client.remove_command('help')
 # allows users to search libraries, their own or others, for game names
 async def Search_func(ctx, search_query, user_query=None, called_from=False):
     if user_query == None:
-        member = ctx.author.name
+        member = ctx.author
     else:
-        member = get_user_class(user_query)
-    results_data = db.search(ctx.guild, member, search_query)
+        member = await get_user_class(user_query)
+    results_data = db.search(ctx.guild, member.name, search_query)
     #print(results_data)
     if len(results_data) == 0:
         await ctx.send('```I found no matches```')
@@ -82,70 +82,8 @@ async def Search_func(ctx, search_query, user_query=None, called_from=False):
     response = await ctx.send(embed=results_lib.CurrentPage())
     #reacts with navigation emojis and database modification emojis if applicable
     await results_lib.React(response,called_from)
-    
-    #function for when a member reacts
-    @discord_client.event
-    async def on_reaction_add(reaction, user):
-        #checks if the member is not the bot itself
-        #prevents looping on itself
-        if user != discord_client.user:
-
-            #temparary variable
-            reaction_num = None
-
-            #gets reaction index
-            for count, item in enumerate(results_lib.DownloadReacts):
-                if reaction.emoji == item:
-                    reaction_num = count
-            
-            #doesn't interat with database if member is just changing pages
-            if not reaction_num == None:
-                #select game for memeber to change personal data
-                game_name = results_lib.data_array[reaction_num + (5*results_lib.PageNumber)]
-
-                #iterates through entire database one row at a time 
-                for row, row_game_name in enumerate(wks.col_values(2)):
-
-                    #looking for selected game row
-                    if game_name == row_game_name:
-                        #checks if reaction author and library owner match
-                        if wks.cell(row+1,1).value == user.mention:
-                            #init state value 
-                            state = ''
-                            #determines output message and database value
-                            if called_from == 'Download':
-                                state = 'Yes'
-                            elif called_from == 'Uninstall':
-                                state = 'No'
-                                #updates proper cell
-                            wks.update_cell(row+1,7,state)
-                            #send message to member that database has been updated
-                            await ctx.send("```" + game_name + " has been marked as {0}downloaded```".format("" if state == "Yes" else "not "))
-                            #exits loop
-                            break
-            
-            #if forward emoji
-            if reaction.emoji == results_lib.NavigationReacts[1]:
-                #delete last embed
-                await reaction.message.delete()
-                #increment current page
-                results_lib.NextPage()
-                #resend current page
-                response = await ctx.send(embed=results_lib.CurrentPage())
-                #send apprioprate reactions again
-                await results_lib.React(response,called_from)
-            #if backward emoji
-            if reaction.emoji == results_lib.NavigationReacts[0]:
-                #delete last embed
-                await reaction.message.delete()
-                #decrement current page
-                results_lib.PreviousPage()
-                #resend current page
-                response = await ctx.send(embed=results_lib.CurrentPage())
-                #send apprioprate reactions again
-                await results_lib.React(response,called_from)
     #send result embed
-    return response
+    return response, results_lib
 
 # formats serveral pages of embeds using the format details specified by user
 async def create_embeds(libclass):
@@ -154,7 +92,7 @@ async def create_embeds(libclass):
             #adds a field per game to the embed with the downloaded status
             libclass.Page.add_field(name=game[0], value=game[1], inline=False)
             # checks to make sure there is only 5 games per page of the library so it doesnt get overwhelming and the embed cant hold the whole library
-            if (count%libclass.MaxGamesOnPage == 0 and count > 0) or count+1 - len(libclass.data_array) == 0:
+            if (((count+1)%libclass.MaxGamesOnPage) == 0 and count > 0) or count - len(libclass.data_array) == 0:
                 libclass.AddPage()
     elif type(libclass.data_array[0]) == str:
         for count, game in enumerate(libclass.data_array):
@@ -177,23 +115,25 @@ async def Arg_Assign(all_args):
     #if no
     if len(members) == len(all_args):
         #format becomes none type
-        formatting = None
+        misc = None
     #if yes
     else:
         #make format a list of all the arguments
-        formatting = list(all_args)
+        misc = list(all_args)
 
-        #remove all member arguemnts so formatting is left alone
+        #remove all member arguemnts so misc is left alone
         for member in members:
-            formatting.remove(member)
+            misc.remove(member)
         #format becomes string from list
-        formatting = formatting[0]
+        misc = misc[0]
     
     #if only one member is mentioned convert it to a string instead of leaving it in an array
     if len(members) == 1:
         members = members[0]
+    elif len(members) == 0:
+        members = None
 
-    return members, formatting
+    return members, misc
 
 
 # a function to show similarities between members libraries
@@ -273,9 +213,31 @@ async def compare(ctx, *all_args):
 
 #member command to update database games as downloaded
 @discord_client.command()
-async def download(ctx, download_query=None, user_query=None):
+async def download(ctx, download_query=None):
+    member = await get_user_class(ctx.author.mention)
     #calls search command with 'Download' perameter
-    results = await search(ctx, download_query, user_query, called_from='Download')
+    results, results_lib = await Search_func(ctx, download_query, None, called_from='Download')
+    
+    @discord_client.event
+    async def on_reaction_add(reaction, user):
+        if user != discord_client.user:
+            
+            if reaction.emoji in results_lib.NavigationReacts:
+                await reaction.message.delete()
+                if reaction.emoji == results_lib.NavigationReacts[0]:
+                    results_lib.PreviousPage()
+                elif reaction.emoji == results_lib.NavigationReacts[1]:
+                    results_lib.NextPage()
+
+                response = await ctx.send(embed=results_lib.CurrentPage())
+                await results_lib.React(response,'Download')
+
+            if reaction.emoji in results_lib.DownloadReacts:
+                game_num = results_lib.PageNumber * results_lib.MaxGamesOnPage + results_lib.DownloadReacts.index(reaction.emoji)
+                download_query = results_lib.data_array[game_num][2]
+                name = results_lib.data_array[game_num][0]
+                db.download(ctx.guild, member.name, download_query)
+                await ctx.send('```{0} has been marked as downloaded```'.format(name))
 
 # A simple command that repeats what was sent
 # mainly useful for debugging 
@@ -381,7 +343,10 @@ async def help(ctx, commandName=None):
 async def readlib(ctx, *all_args):
 
     member, formatting = await Arg_Assign(all_args)
-    member = await get_user_class(member)
+    if member == None:
+        member = await get_user_class(ctx.author.mention)
+    else:
+        member = await get_user_class(member)
     UsersLibrary = Library(User=member.name)
     """
         if await sheet_data_to_array(UsersLibrary, formatting) == False:
@@ -411,9 +376,30 @@ async def readlib(ctx, *all_args):
 
 # runs the Search_func command
 @discord_client.command()
-async def search(ctx, search_query, user_query=None,called_from=False):
+async def search(ctx, *args):
+    user_query=None
+    search_query=None
+    user_query, search_query = await Arg_Assign(args)
+    if search_query == None:
+        await ctx.send('```You did not specify what to search with. Try again```')
+        return
     #runs search command without being intention to change database values 
-    response = await Search_func(ctx, search_query, user_query, called_from)
+    response, response_lib = await Search_func(ctx, search_query, user_query, False)
+
+    @discord_client.event
+    async def on_reaction_add(reaction, user):
+        if user != discord_client.user:
+            
+            if reaction.emoji == response_lib.NavigationReacts[1]:
+                await reaction.message.delete()
+                response_lib.NextPage()
+
+            if reaction.emoji == response_lib.NavigationReacts[0]:
+                await reaction.message.delete()
+                response_lib.PreviousPage()
+                
+            response = await ctx.send(embed=response_lib.CurrentPage())
+            await response_lib.React(response,False)
 
 @discord_client.command()
 async def steamid(ctx, steamID):
@@ -541,7 +527,7 @@ async def random(ctx, *members):
 
 @discord_client.command()
 async def uninstall(ctx, game_query=None, user_query=None):
-    results = await search(ctx, game_query, user_query, called_from='Uninstall')
+    results = await Search_func(ctx, game_query, user_query, called_from='Uninstall')
 
 #discord_client.loop.create_task(update_libs())
 discord_client.run(TOKEN)

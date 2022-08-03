@@ -2,6 +2,7 @@ import pymysql
 import ast
 
 from scipy.fft import idct
+from setuptools import Command
 
 #connects to database using username and password
 conn = pymysql.connect(user='beastPC', password='SunTitan6//6', host='192.168.1.117')
@@ -179,9 +180,12 @@ def get_steam_link(member_class):
 def search(server, member, query):
     name_matches = []
     change_db('masterData')
-    command = 'SELECT * FROM games WHERE gameName LIKE \'{0}%\''.format(query)
-    if len(query) > 1:
-        command = command.replace('\'','\'%',1)
+    if not query == None:
+        command = 'SELECT * FROM games WHERE gameName LIKE \'{0}%\' ORDER BY gameName ASC'.format(query)
+        if len(query) > 1:
+            command = command.replace('\'','\'%',1)
+    else:
+        command = 'SELECT * FROM games ORDER BY gameName ASC'
     cursor.execute(command)
     master_matches = cursor.fetchall()
 
@@ -196,5 +200,12 @@ def search(server, member, query):
             continue
         else:
             downloaded = 'Yes' if local_match[0][2] else "No"
-            name_matches.append([game[1],format_details().replace('(d)',downloaded)])
+            name_matches.append([game[1],format_details().replace('(d)',downloaded), game[0]])
     return name_matches
+
+def download(server, member, game_id):
+    change_db(server)
+    command = "UPDATE `{0}` SET downloaded=1 WHERE gameID={1}".format(member,game_id)
+    cursor.execute(command)
+    conn.commit()
+
