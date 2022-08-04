@@ -420,20 +420,12 @@ async def steamid(ctx, steamID):
 # updates hours played per game and adds new games purchased
 # function only updates one member's library
 @discord_client.command()
-async def _update_lib(ctx, member_name):
-    
-    #member_name = ctx.author.mention
-    # opens sheet that contains info for steam library access
-    wks = wb.get_worksheet(1)
-
-    #gets all members names
-    usernames_list = wks.col_values(1)
-
+async def _update_lib(ctx, member):
+    member = await get_user_class(member)
+    usernames_list = db.get_all_members()
     # runs if memeber has steam info inputted
-    if member_name in usernames_list:
-        #url to scrap as a varible
-        steam_lib_link = wks.cell(usernames_list.index(member_name)+1,4,'FORMATTED_VALUE').value
-        
+    if str(member.id) in usernames_list:
+        steam_lib_link = db.get_steam_link(member)
         #opens connection to client website and downloads information
         uClient = uReq(steam_lib_link)
 
@@ -456,22 +448,15 @@ async def _update_lib(ctx, member_name):
         all_game_info = all_game_info.replace('false','False')
         all_game_info = all_game_info.replace('true','True')
         undicted_game_info = list(all_game_info.split(",,"))
-        #sets game info sheet to active
-        wks = wb.get_worksheet(0)
-        
-        #gets the current sheet to be compared to tell if new games needed to be added
-        current_sheet = wks.get_all_values()
 
         for game in undicted_game_info:
             #makes dictionary for game to easily access information
             game_info_dict = ast.literal_eval(game)
             if 'hours_forever' in game_info_dict:
-                useful_game_info = [member_name, game_info_dict['name'], game_info_dict['hours_forever'], game_info_dict['appid'], 'https://store.steampowered.com/app/'+str(game_info_dict['appid']), 'No', 'No', 'none',]
-
-                steam_lib_link = useful_game_info[4]
+                steam_game_link = 'https://store.steampowered.com/app/' + str(game_info_dict['appid'])
             
                 #opens connection to client website and downloads information
-                uClient = uReq(steam_lib_link)
+                uClient = uReq(steam_game_link)
 
                 #mloads html content into variable
                 page_html = uClient.read()
@@ -484,21 +469,19 @@ async def _update_lib(ctx, member_name):
                 json_script = page_soup.find_all("a", class_="app_tag")
                 tags = []
                 db_multiplayer = False
-                for index in range(len(json_script)):
-                    tag = json_script[index].next.replace('\n', '').replace('\r', '').replace('\t', '')
+                for tag in json_script:
+                    tag = tag.next.replace('\n', '').replace('\r', '').replace('\t', '')
                     tags.append(tag)
                     if tag == "Multiplayer":
-                        useful_game_info[5] = "Yes"
                         db_multiplayer = True
-                #loops through each row in the games sheet to update and add new games to sheet
-                row_count = 1
                 
                 #updates Rpi database
-                member_class = await get_user_class(member_name)
-                db.update_db(ctx.guild.name, member_class.name ,game_info_dict,', '.join(tags), db_multiplayer)
+                db.update_db(ctx.guild.name, member.name ,game_info_dict,', '.join(tags), db_multiplayer)
             #await ctx.send("```I do not have a Steam ID for you, please go input one with the 'steamid' command```")
             
         await ctx.send("```Your library has been updated```")
+    else:
+        await ctx.send("```Member does not exsist in my database. Use the steamID command to get started```")
 
 # will give a common game suggestion between all mentioned members
 @discord_client.command()

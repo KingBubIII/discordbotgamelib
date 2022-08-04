@@ -35,6 +35,13 @@ def get_game_ids(db_name,tbl_name):
 
     return searchable_ids
 
+def get_all_members():
+    change_db('masterData')
+    command = 'SELECT discordID FROM members'
+    cursor.execute(command)
+    membersID_list = [ row[0] for row in cursor.fetchall() ]
+    return membersID_list
+
 def update_db(server, discord_name, game_info_dict, tags, multiplayer):
 
     #get list of all ids in master data
@@ -90,7 +97,6 @@ def update_db(server, discord_name, game_info_dict, tags, multiplayer):
         cursor.execute(command)
         
     conn.commit()
-
 
 def profile_update(discord_id, steam_id):
     change_db('masterData')
