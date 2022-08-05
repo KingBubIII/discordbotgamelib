@@ -236,7 +236,7 @@ async def download(ctx, download_query=None):
                 game_num = results_lib.PageNumber * results_lib.MaxGamesOnPage + results_lib.DownloadReacts.index(reaction.emoji)
                 download_query = results_lib.data_array[game_num][2]
                 name = results_lib.data_array[game_num][0]
-                db.download(ctx.guild, member.name, download_query)
+                db.mark_as(ctx.guild, member.name, download_query, True)
                 await ctx.send('```{0} has been marked as downloaded```'.format(name))
 
 # A simple command that repeats what was sent
@@ -509,8 +509,30 @@ async def random(ctx, *members):
     await ctx.send(embed=single_embed)
 
 @discord_client.command()
-async def uninstall(ctx, game_query=None, user_query=None):
-    results = await Search_func(ctx, game_query, user_query, called_from='Uninstall')
+async def uninstall(ctx, game_query=None):
+    member = await get_user_class(ctx.author.mention)
+    #calls search command with 'Download' perameter
+    results, results_lib = await Search_func(ctx, game_query, None, called_from='Uninstall')
+    
+    @discord_client.event
+    async def on_reaction_add(reaction, user):
+        if user != discord_client.user:
+            
+            if reaction.emoji in results_lib.NavigationReacts:
+                await reaction.message.delete()
+                if reaction.emoji == results_lib.NavigationReacts[0]:
+                    results_lib.PreviousPage()
+                elif reaction.emoji == results_lib.NavigationReacts[1]:
+                    results_lib.NextPage()
 
+                response = await ctx.send(embed=results_lib.CurrentPage())
+                await results_lib.React(response,'Uninstall')
+
+            if reaction.emoji in results_lib.DownloadReacts:
+                game_num = results_lib.PageNumber * results_lib.MaxGamesOnPage + results_lib.DownloadReacts.index(reaction.emoji)
+                download_query = results_lib.data_array[game_num][2]
+                name = results_lib.data_array[game_num][0]
+                db.mark_as(ctx.guild, member.name, download_query, False)
+                await ctx.send('```{0} has been marked as unistalled```'.format(name))
 #discord_client.loop.create_task(update_libs())
 discord_client.run(TOKEN)

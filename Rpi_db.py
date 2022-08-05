@@ -209,9 +209,10 @@ def search(server, member, query):
             name_matches.append([game[1],format_details().replace('(d)',downloaded), game[0]])
     return name_matches
 
-def download(server, member, game_id):
+def mark_as(server, member, game_id, set_as):
     change_db(server)
-    command = "UPDATE `{0}` SET downloaded=1 WHERE gameID={1}".format(member,game_id)
+    command = "UPDATE `{0}` SET downloaded={1} WHERE gameID={2}".format(member, 1 if set_as else 0, game_id)
     cursor.execute(command)
     conn.commit()
+
 
