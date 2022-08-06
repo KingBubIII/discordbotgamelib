@@ -138,40 +138,14 @@ async def Arg_Assign(all_args):
 
 # a function to show similarities between members libraries
 # can compare two or more members at a time
-async def compare_func(formatting, *members):
+async def compare_func(ctx, formatting, *members):
 
     #creating empty arrays to appaend data later
     peoples_libs = []
     peoples_games = []
 
-    #loop through each mentioned person to create a library class for each
-    for count, person in enumerate(members[0]):
-        peoples_libs.append(Library(person))
-        if await sheet_data_to_array(peoples_libs[count], formatting) == False:
-            return "```Selected formatting is not an option```"
-        else:
-            temp = [item[0] for item in peoples_libs[count].data_array]
-            peoples_games.append(temp)
-
-    for count, games in enumerate(peoples_games):
-        peoples_games[count] = set(games)
-
-    common_games = set(peoples_games[0])
-    for count in range(len(peoples_games)-1):
-        common_games = common_games.intersection(set(peoples_games[count+1]))
-    common_games = list(common_games)
-
-    games_with_embed_data = []
-
-    for count in range(len(common_games)):
-        temp = [common_games[count],""]
-
-        for person in peoples_libs:
-            for item in person.data_array:
-                if common_games[count] == item[0]:
-                    temp[1] += item[1] + "\n"
-        games_with_embed_data.append(temp)
-    Common_lib = Library(User = "Common Games",data= games_with_embed_data)
+    Common_lib = Library(User = "Common Games")
+    db.compare(ctx.guild, members, Common_lib, formatting)
     await create_embeds(Common_lib)
     return Common_lib
 
@@ -348,11 +322,7 @@ async def readlib(ctx, *all_args):
     else:
         member = await get_user_class(member)
     UsersLibrary = Library(User=member.name)
-    """
-        if await sheet_data_to_array(UsersLibrary, formatting) == False:
-            await ctx.send("```Selected formatting is not an option```")
-        else:
-    """
+
     db.readlib(ctx.guild, UsersLibrary, formatting)
     await create_embeds(UsersLibrary)
     

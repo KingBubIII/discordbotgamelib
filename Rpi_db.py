@@ -24,7 +24,7 @@ def get_game_ids(db_name,tbl_name):
     change_db(db_name)
 
     #command to get list of ids in user library
-    command = "SELECT {0} FROM {1}".format('steamID' if db_name=='masterData' else 'gameID', 'games' if db_name=='masterData' else tbl_name)
+    command = "SELECT {0} FROM `{1}`".format('steamID' if db_name=='masterData' else 'gameID', 'games' if db_name=='masterData' else tbl_name)
     #execute
     cursor.execute(command)
     #gets results into variable
@@ -84,11 +84,11 @@ def update_db(server, discord_name, game_info_dict, tags, multiplayer):
     #print(master_game_data)
     if not game_info_dict["appid"] in searchable_ids:
         #creates string of tuple to insert into members library if its a new game to them.
-        channel_data = repr((game_info_dict["appid"], float(game_info_dict["hours_forever"]), 0))
+        channel_data = repr((game_info_dict["appid"], float(game_info_dict["hours_forever"].replace(",","")), 0))
         #print(channel_data)
 
         #creates command to insert new games into library
-        command = "INSERT INTO {0} ( gameID, hours, downloaded) VALUES {1}".format(discord_name, channel_data)
+        command = "INSERT INTO `{0}` ( gameID, hours, downloaded) VALUES {1}".format(discord_name, channel_data)
         #executes command
         cursor.execute(command)
     else:
@@ -215,4 +215,35 @@ def mark_as(server, member, game_id, set_as):
     cursor.execute(command)
     conn.commit()
 
+def compare(server, members, libclass, format):
+    change_db(server)
+    if len(members) > 2:
+        additional_tables = ["","",""]
+        for count in range(2, len(members)):
+            additional_tables[0] += ', pD{0}.*'.format(count)
+            additional_tables[1] += ', `{0}`.`{1}` as pD{2}'.format(server, members[count], count)
+            additional_tables[2] += ' AND pD{0}.gameID = pD{1}.gameID'.format(count-1,count)
+    command = 'SELECT mD.*, pD0.*, pD1.*{3} FROM masterData.games as mD, `{0}`.`{1}` AS pD0, `{0}`.`{2}` as pD1{4} WHERE mD.steamID = pD0.gameID AND pD0.gameID = pD1.gameID{5}'.format(server, members[0], members[1],additional_tables[0], additional_tables[1], additional_tables[2])
+    cursor.execute(command)
+    common_games = cursor.fetchall()
 
+    #loop through each game
+    for game in common_games:
+        all_member_details = []
+        for member_index in range(len(members)):
+
+            #chose human readable outputs
+            downloaded = 'Yes' if game[3+(3*(member_index+1))] else "No"
+            hours = str(game[2+(3*(member_index+1))])
+            multiplayer = 'Yes' if game[2] else "No"
+            tags = game[3]
+            formatted_details = format_details(format)
+            formatted_details = formatted_details.replace('(d)',downloaded).replace('(h)',hours).replace('(o)',multiplayer).replace('(t)',tags)
+            all_member_details.append(formatted_details)
+        #temperary array
+        data = [game[1],all_member_details]
+        #add game and the details that have been formatted to library class data
+        libclass.data_array.append(data)
+        print(data)
+
+compare( 'Nation of Caleebstan', ['KingBubIII', 'Thrimosi', 'Argonaut', 'Sherman Anti-Trust Act of 1890'], None, 'oh' )
