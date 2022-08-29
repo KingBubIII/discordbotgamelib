@@ -5,7 +5,8 @@ from scipy.fft import idct
 from setuptools import Command
 
 #connects to database using username and password
-conn = pymysql.connect(user='beastPC', password='SunTitan6//6', host='192.168.1.117')
+#conn = pymysql.connect(user='beastPC', password='SunTitan6//6', host='192.168.1.116')
+conn = pymysql.connect(user='remotein', password='Barrel$rC00l', host='74.74.86.173')
 #cursor allows for commands to be run and collects outputs
 cursor = conn.cursor()
 
@@ -217,8 +218,8 @@ def mark_as(server, member, game_id, set_as):
 
 def compare(server, members, libclass, format):
     change_db(server)
+    additional_tables = ["","",""]
     if len(members) > 2:
-        additional_tables = ["","",""]
         for count in range(2, len(members)):
             additional_tables[0] += ', pD{0}.*'.format(count)
             additional_tables[1] += ', `{0}`.`{1}` as pD{2}'.format(server, members[count], count)
@@ -244,6 +245,6 @@ def compare(server, members, libclass, format):
         data = [game[1],all_member_details]
         #add game and the details that have been formatted to library class data
         libclass.data_array.append(data)
-        print(data)
+        #print(data)
 
-compare( 'Nation of Caleebstan', ['KingBubIII', 'Thrimosi', 'Argonaut', 'Sherman Anti-Trust Act of 1890'], None, 'oh' )
+#compare( 'Nation of Caleebstan', ['KingBubIII', 'Thrimosi', 'Argonaut', 'Sherman Anti-Trust Act of 1890'], None, 'oh' )

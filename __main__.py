@@ -76,7 +76,7 @@ async def Search_func(ctx, search_query, user_query=None, called_from=False):
     results_lib = Library(User="results",data=results_data)
 
     #creates embed from result class
-    await create_embeds(results_lib)
+    await create_embeds(results_lib, None)
 
     #send first page of results embed back to member
     response = await ctx.send(embed=results_lib.CurrentPage())
@@ -86,11 +86,41 @@ async def Search_func(ctx, search_query, user_query=None, called_from=False):
     return response, results_lib
 
 # formats serveral pages of embeds using the format details specified by user
-async def create_embeds(libclass):
+async def create_embeds(libclass, members):
     if type(libclass.data_array[0]) == list or type(libclass.data_array[0]) == tuple:
         for count, game in enumerate(libclass.data_array):
-            #adds a field per game to the embed with the downloaded status
-            libclass.Page.add_field(name=game[0], value=game[1], inline=False)
+            
+            if type(libclass.data_array[0][1]) == str:
+                #adds a field per game to the embed with the downloaded status
+                libclass.Page.add_field(name=game[0], value=game[1], inline=False)
+            
+            elif type(libclass.data_array[0][1]) == list:
+                formatted = ""
+                details_len = len(game[1][0].split('\n'))
+                
+                for index in range(0,len(members), 2):
+                    grouped_people = 1 if index+1 == len(members) else 2
+
+                    for shift in range(grouped_people):
+                        temp_str = '`' + members[index+shift] + '`'
+                        temp_str = temp_str.center(32, '\u200b')
+                        temp_str = temp_str.replace('\u200b',' \u200b')
+                        formatted += temp_str
+
+                    formatted += '\n\u200b'
+
+                    for i in range(details_len):
+                        for shift in range(grouped_people):
+                            temp_str = game[1][index+shift].split('\n')[i]
+                            temp_str = temp_str.center(32, '\u200b')
+                            temp_str = temp_str.replace('\u200b',' \u200b')
+                            formatted += temp_str
+                            if shift+1 == grouped_people and (index+1 != len(members) or i+1 != details_len):
+                                formatted += '\n\u200b'
+
+                #print(len(formatted))
+                libclass.Page.add_field(name=game[0], value=formatted, inline=False)
+            
             # checks to make sure there is only 5 games per page of the library so it doesnt get overwhelming and the embed cant hold the whole library
             if (((count+1)%libclass.MaxGamesOnPage) == 0 and count > 0) or count - len(libclass.data_array) == 0:
                 libclass.AddPage()
@@ -138,7 +168,7 @@ async def Arg_Assign(all_args):
 
 # a function to show similarities between members libraries
 # can compare two or more members at a time
-async def compare_func(ctx, formatting, *members):
+async def compare_func(ctx, formatting, members):
 
     #creating empty arrays to appaend data later
     peoples_libs = []
@@ -146,7 +176,7 @@ async def compare_func(ctx, formatting, *members):
 
     Common_lib = Library(User = "Common Games")
     db.compare(ctx.guild, members, Common_lib, formatting)
-    await create_embeds(Common_lib)
+    await create_embeds(Common_lib, members)
     return Common_lib
 
 async def get_user_class(member_id_str):
@@ -164,8 +194,12 @@ async def on_ready():
 async def compare(ctx, *all_args):
 
     members, formatting = await Arg_Assign(all_args)
-    
-    Common_lib = await compare_func(formatting, members)
+
+    for count in range(len(members)):
+        user_class = await get_user_class(members[count])
+        members[count] = user_class.name
+
+    Common_lib = await compare_func(ctx, formatting, members)
 
     response = await ctx.send(embed=Common_lib.CurrentPage())
     await Common_lib.React(response,False)
@@ -324,7 +358,7 @@ async def readlib(ctx, *all_args):
     UsersLibrary = Library(User=member.name)
 
     db.readlib(ctx.guild, UsersLibrary, formatting)
-    await create_embeds(UsersLibrary)
+    await create_embeds(UsersLibrary, None)
     
     response = await ctx.send(embed=UsersLibrary.CurrentPage())
     await UsersLibrary.React(response,False)
