@@ -102,7 +102,7 @@ async def create_embeds(libclass, members):
                     grouped_people = 1 if index+1 == len(members) else 2
 
                     for shift in range(grouped_people):
-                        temp_str = '`' + members[index+shift] + '`'
+                        temp_str = '**' + members[index+shift] + '**'
                         temp_str = temp_str.center(32, '\u200b')
                         temp_str = temp_str.replace('\u200b',' \u200b')
                         formatted += temp_str
