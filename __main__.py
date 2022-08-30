@@ -87,49 +87,68 @@ async def Search_func(ctx, search_query, user_query=None, called_from=False):
 
 # formats serveral pages of embeds using the format details specified by user
 async def create_embeds(libclass, members):
-    if type(libclass.data_array[0]) == list or type(libclass.data_array[0]) == tuple:
-        for count, game in enumerate(libclass.data_array):
+    # loops through each common game
+    for count, game in enumerate(libclass.data_array):
+        # if only one library is being read 
+        if type(libclass.data_array[0][1]) == str:
+            # adds a field per game to the embed with the formatting options
+            libclass.Page.add_field(name=game[0], value=game[1], inline=False)
+        
+        # if details of multiple users are being outputed
+        elif type(libclass.data_array[0][1]) == list:
+            # empty string to be added to as needed
+            formatted = ""
+            #the number of details specified
+            details_len = len(game[1][0].split('\n'))
             
-            if type(libclass.data_array[0][1]) == str:
-                #adds a field per game to the embed with the downloaded status
-                libclass.Page.add_field(name=game[0], value=game[1], inline=False)
-            
-            elif type(libclass.data_array[0][1]) == list:
-                formatted = ""
-                details_len = len(game[1][0].split('\n'))
+            # loops through all members 2 at a time
+            for index in range(0,len(members), 2):
+                # allows for an odd person that will no be grouped with someone else 
+                grouped_people = 1 if index+1 == len(members) else 2
+
+                """
+                '\u200b' is a zero width space character
+                It is used because discord embeds like to remove excess spaces and new lines
+                This trickes the embed so it doesn't remove extra spaces and new lines
+                Therefore allows for formatting
+                """
+
+                # loops though the grouped members
+                for shift in range(grouped_people):
+                    # will bold member name 
+                    temp_str = '**' + members[index+shift] + '**'
+                    # centers the name in zero width characters
+                    temp_str = temp_str.center(32+4, '\u200b')
+                    #replaces the zero width characters with spaces followed by the special character
+                    temp_str = temp_str.replace('\u200b',' \u200b')
+                    # adds string to final result
+                    formatted += temp_str
                 
-                for index in range(0,len(members), 2):
-                    grouped_people = 1 if index+1 == len(members) else 2
+                # sperates the member names from the details with a newline
+                formatted += '\n\u200b'
 
+                # loops through each game detail
+                for i in range(details_len):
+                    # does this for each grouped member
                     for shift in range(grouped_people):
-                        temp_str = '**' + members[index+shift] + '**'
-                        temp_str = temp_str.center(32, '\u200b')
+                        # grabs the detail 
+                        temp_str = game[1][index+shift].split('\n')[i]
+                        # centers the game detail to line up with the member name
+                        temp_str = temp_str.center(32+4, '\u200b')
+                        # adds the space with the special character
                         temp_str = temp_str.replace('\u200b',' \u200b')
+                        # adds string to final result
                         formatted += temp_str
+                        # adds new line only inbetween details and the next grouped member names
+                        if shift+1 == grouped_people and (index+1 != len(members) or i+1 != details_len):
+                            formatted += '\n\u200b'
 
-                    formatted += '\n\u200b'
-
-                    for i in range(details_len):
-                        for shift in range(grouped_people):
-                            temp_str = game[1][index+shift].split('\n')[i]
-                            temp_str = temp_str.center(32, '\u200b')
-                            temp_str = temp_str.replace('\u200b',' \u200b')
-                            formatted += temp_str
-                            if shift+1 == grouped_people and (index+1 != len(members) or i+1 != details_len):
-                                formatted += '\n\u200b'
-
-                #print(len(formatted))
-                libclass.Page.add_field(name=game[0], value=formatted, inline=False)
-            
-            # checks to make sure there is only 5 games per page of the library so it doesnt get overwhelming and the embed cant hold the whole library
-            if (((count+1)%libclass.MaxGamesOnPage) == 0 and count > 0) or count - len(libclass.data_array) == 0:
-                libclass.AddPage()
-    elif type(libclass.data_array[0]) == str:
-        for count, game in enumerate(libclass.data_array):
-            #adds a field per game to the embed with the downloaded status
-            libclass.Page.add_field(name=game, value="Mark as downloaded by react with 5" if (count+1)%libclass.MaxGamesOnPage == 0 else "Mark as downloaded by react with " + str((count+1)%libclass.MaxGamesOnPage), inline=False)
-            if (((count+1)%libclass.MaxGamesOnPage) == 0 and count > 0) or count - len(libclass.data_array) == 0:
-                libclass.AddPage()
+            #print(len(formatted))
+            libclass.Page.add_field(name=game[0], value=formatted, inline=False)
+        
+        # checks to make sure there is only 5 games per page of the library so it doesnt get overwhelming and the embed cant hold the whole library
+        if (((count+1)%libclass.MaxGamesOnPage) == 0 and count > 0) or count - len(libclass.data_array) == 0:
+            libclass.AddPage()
     #if there are 5 or less items
     if len(libclass.Embeds) == 0:
         libclass.AddPage()
@@ -164,7 +183,6 @@ async def Arg_Assign(all_args):
         members = None
 
     return members, misc
-
 
 # a function to show similarities between members libraries
 # can compare two or more members at a time
@@ -254,6 +272,8 @@ async def echo(ctx, *, msg='echo'):
     #await ctx.send(f"""```{ctx.author.id}: {msg}```""")
     #await ctx.send(f"""```{ctx.guild}```""")
     await ctx.send(f"""```{msg}```""")
+    #test = discord.Embed(title = 'test', description = '\u00ae'*5 , color = discord.Color.blue())
+    #await ctx.send(embed=test)
 
 # teaches members how to use bot
 # you can specify commands to get in depth help on them
@@ -479,6 +499,12 @@ async def _update_lib(ctx, member):
                     if tag == "Multiplayer":
                         db_multiplayer = True
                 
+                trademarks = ['u00ae','u2122']
+
+                for trademark in trademarks:
+                    if trademark in game_info_dict['name']:
+                        game_info_dict['name'] = game_info_dict['name'].replace(trademark,chr(int(trademark.replace('u',''), 16)))
+
                 #updates Rpi database
                 db.update_db(ctx.guild.name, member.name ,game_info_dict,', '.join(tags), db_multiplayer)
             #await ctx.send("```I do not have a Steam ID for you, please go input one with the 'steamid' command```")

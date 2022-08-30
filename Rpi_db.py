@@ -93,7 +93,7 @@ def update_db(server, discord_name, game_info_dict, tags, multiplayer):
         #executes command
         cursor.execute(command)
     else:
-        command = "UPDATE {0} SET hours={1} WHERE gameID={2}".format(discord_name, float(game_info_dict["hours_forever"]), game_info_dict["appid"])
+        command = "UPDATE `{0}` SET hours={1} WHERE gameID={2}".format(discord_name, float(game_info_dict["hours_forever"].replace(',','')), game_info_dict["appid"])
         #executes command
         cursor.execute(command)
         
@@ -245,6 +245,3 @@ def compare(server, members, libclass, format):
         data = [game[1],all_member_details]
         #add game and the details that have been formatted to library class data
         libclass.data_array.append(data)
-        #print(data)
-
-#compare( 'Nation of Caleebstan', ['KingBubIII', 'Thrimosi', 'Argonaut', 'Sherman Anti-Trust Act of 1890'], None, 'oh' )
