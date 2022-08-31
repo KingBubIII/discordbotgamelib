@@ -1,17 +1,9 @@
 #!/usr/bin/python3
-from cgitb import reset
-from threading import TIMEOUT_MAX
-from typing import List
 import discord
 from discord.ext import commands
-import gspread
-from oauth2client.crypt import AppIdentityError
-from oauth2client.service_account import ServiceAccountCredentials
 from urllib.request import urlopen as uReq
-import asyncio
 import ast
 from bs4 import BeautifulSoup as soup
-from six import string_types
 from Bot_Classes import *
 import platform
 import random as rd
@@ -26,24 +18,6 @@ def Correct_path():
         mypath = '/home/kingbubiii/Documents/discordbotgamelib/'
 
     return mypath
-
-#things to get setup with google, being authorized and whatnot
-scope = [
-    "https://spreadsheets.google.com/feeds",'https://www.googleapis.com/auth/spreadsheets',
-    "https://www.googleapis.com/auth/drive.file","https://www.googleapis.com/auth/drive"]
-
-#credentials in list
-mypath = Correct_path()
-if mypath == None:
-    creds = ServiceAccountCredentials.from_json_keyfile_name("creds.json", scope)
-else:
-    creds = ServiceAccountCredentials.from_json_keyfile_name(mypath + "creds.json", scope)
-
-#passes in all credentials to make sure changes/ viewing are allowed
-sheets_client = gspread.authorize(creds)
-
-# Open the spreadhseet
-wb = sheets_client.open('discord_bot_data')
 
 #discord bot token needed to run bot
 if mypath == None:
