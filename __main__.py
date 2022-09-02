@@ -361,14 +361,12 @@ async def readlib(  ctx: discord.ApplicationContext,
 
     # creates an element for a response with discord buttons 
     myView = View()
-    # attaches page navigating functions to user library
-    myNav = slash_btns.Navigation(UsersLibrary)
     
     # adds buttons to view element
-    myView.add_item(myNav.beginning)
-    myView.add_item(myNav.backward)
-    myView.add_item(myNav.forward)
-    myView.add_item(myNav.end)
+    myView.add_item(UsersLibrary.beginning)
+    myView.add_item(UsersLibrary.backward)
+    myView.add_item(UsersLibrary.forward)
+    myView.add_item(UsersLibrary.end)
     
     #sends inital reponse
     await ctx.respond(embed=UsersLibrary.CurrentPage(), view=myView)
