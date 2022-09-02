@@ -119,8 +119,9 @@ class Library:
         self.GameCount = len(self.Embeds)
         #creates a copy of the basic page
         self.Page = self.NewEmbed()
-        self.NavigationReacts = ['⏪', '⏩']
+        self.NavigationReacts = ['⏪', '◀️', '▶️', '⏩']
         self.DownloadReacts = ['1️⃣','2️⃣','3️⃣','4️⃣','5️⃣']
+        self.Possible_formats = ['h','o','d','t']
 
     # add an embed page
     def AddPage(self):
