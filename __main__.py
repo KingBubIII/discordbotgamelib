@@ -9,7 +9,6 @@ from Bot_Classes import *
 import platform
 import random as rd
 import Rpi_db as db
-import slash_btns
 import itertools
 
 def Correct_path():
@@ -246,7 +245,7 @@ async def download(ctx, download_query=None):
 # mainly useful for debugging 
 #@discord_client.command() 
 @discord_client.slash_command(name = "echo", description = "Say hello to the bot")
-async def echo(ctx, msg='echo'):
+async def echo(ctx, msg: str = 'echo'):
     #await ctx.respond(f"""```{ctx.author.id}: {msg}```""")
     #await ctx.respond(f"""```{ctx.guild}```""")
     await ctx.respond(f"""```{msg}```""")
