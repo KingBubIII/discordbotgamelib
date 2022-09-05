@@ -9,6 +9,8 @@ import platform
 import random as rd
 import Rpi_db as db
 
+# gets token from local file
+# uses linux or windows paths as needed
 TOKEN = open(('/home/kingbubiii/Documents/discordbotgamelib/' if platform.system() == 'Linux' else '') + 'token.txt').read()
 print(TOKEN)
 

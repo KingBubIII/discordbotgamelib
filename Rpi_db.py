@@ -1,8 +1,11 @@
 import pymysql
 import platform
 
-#connects to database using username and password
+# gets all host connection info from local file
+# uses linux or windows paths as needed
 username, mypass, host_address = [line.strip() for line in open(('/home/kingbubiii/Documents/discordbotgamelib/' if platform.system() == 'Linux' else '') + 'mysql_login.txt').readlines()]
+
+#connects to database using username and password
 conn = pymysql.connect(user=username, password=mypass, host=host_address)
 #cursor allows for commands to be run and collects outputs
 cursor = conn.cursor()
