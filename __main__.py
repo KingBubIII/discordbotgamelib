@@ -25,14 +25,14 @@ if mypath == None:
 else:
     TOKEN = str(open(mypath + "token.txt").read())
 
-#creating client instance and identifying prefix for commands 
+# creating client instance and identifying prefix for commands 
 prefix = '>>'
 intents = discord.Intents.default()
 intents.members = True
 
 discord_client = commands.Bot(command_prefix=prefix, intents=intents)
-#discord_client.case_insensitive = True
-#removing default help command
+# discord_client.case_insensitive = True
+# removing default help command
 discord_client.remove_command('help')
 
 # allows users to search libraries, their own or others, for game names
@@ -52,9 +52,9 @@ async def Search_func(ctx, search_query, user_query=None, called_from=False):
     #creates embed from result class
     await create_embeds(results_lib, None)
 
-    #send first page of results embed back to member
+    # send first page of results embed back to member
     response = await ctx.send(embed=results_lib.CurrentPage())
-    #reacts with navigation emojis and database modification emojis if applicable
+    # reacts with navigation emojis and database modification emojis if applicable
     await results_lib.React(response,called_from)
     #send result embed
     return response, results_lib
@@ -127,7 +127,7 @@ async def create_embeds(libclass, members):
     if len(libclass.Embeds) == 0:
         libclass.AddPage()
 
-#allows command function arguements to be called from anywhere when using a command
+# allows command function arguments to be called from anywhere when using a command
 async def Arg_Assign(all_args):
 
     # filters down entire list of arguments down to ones with member character tags '<@!'
@@ -135,22 +135,22 @@ async def Arg_Assign(all_args):
     members = list(filter(lambda arg: "<@" in arg , all_args))
     
     # checks if there is a format choice or not
-    #if no
+    # if no
     if len(members) == len(all_args):
         #format becomes none type
         misc = None
-    #if yes
+    # if yes
     else:
         #make format a list of all the arguments
         misc = list(all_args)
 
-        #remove all member arguemnts so misc is left alone
+        # remove all member arguemnts so misc is left alone
         for member in members:
             misc.remove(member)
         #format becomes string from list
         misc = misc[0]
     
-    #if only one member is mentioned convert it to a string instead of leaving it in an array
+    # if only one member is mentioned, convert it to a string instead of leaving it in an array
     if len(members) == 1:
         members = members[0]
     elif len(members) == 0:
@@ -158,11 +158,11 @@ async def Arg_Assign(all_args):
 
     return members, misc
 
-# a function to show similarities between members libraries
+# a function to show similarities between members' libraries
 # can compare two or more members at a time
 async def compare_func(ctx, formatting, members):
 
-    #creating empty arrays to appaend data later
+    # creating empty arrays to append data later
     peoples_libs = []
     peoples_games = []
 
@@ -175,8 +175,8 @@ async def get_user_class(member_id_str):
     member_class = discord_client.get_user(int(member_id_str.replace('<@','').replace('>','')))
     return member_class
 
-#signaling the bot is online and ready to be used
-#Setting the help command to be what the bot is "playing"
+# signal that the bot is online and ready to be used
+# Set the help command to be what the bot is "playing"
 @discord_client.event
 async def on_ready():
     print('Ready set let\'s go')
@@ -211,7 +211,7 @@ async def compare(ctx, *all_args):
             response = await ctx.send(embed=Common_lib.CurrentPage())
             await Common_lib.React(response,False)
 
-#member command to update database games as downloaded
+# member command to update database games as downloaded
 @discord_client.command()
 async def download(ctx, download_query=None):
     member = await get_user_class(ctx.author.mention)
@@ -243,14 +243,14 @@ async def download(ctx, download_query=None):
 # mainly useful for debugging 
 @discord_client.command() 
 async def echo(ctx, *, msg='echo'):
-    #await ctx.send(f"""```{ctx.author.id}: {msg}```""")
-    #await ctx.send(f"""```{ctx.guild}```""")
+    # await ctx.send(f"""```{ctx.author.id}: {msg}```""")
+    # await ctx.send(f"""```{ctx.guild}```""")
     await ctx.send(f"""```{msg}```""")
     #test = discord.Embed(title = 'test', description = '\u00ae'*5 , color = discord.Color.blue())
     #await ctx.send(embed=test)
 
 # teaches members how to use bot
-# you can specify commands to get in depth help on them
+# you can specify commands to get in-depth help on them
 @discord_client.command()
 async def help(ctx, commandName=None):
     helpEmbed = discord.Embed(title = 'basic bitch', color = discord.Color.orange())
@@ -265,7 +265,7 @@ async def help(ctx, commandName=None):
         helpEmbed.add_field(name = 'readlib', value = 'Allows you and others to read the games you have installed.', inline=False)
         helpEmbed.add_field(name = 'search', value = 'Returns list of games in anyone\'s library that matches your search term', inline=False)
         helpEmbed.add_field(name = 'steamid', value = 'Either creates new profile for member or updates exsisting Steam ID number', inline=False)
-        #helpEmbed.add_field(name = 'download', value = '', inline=False)
+        # helpEmbed.add_field(name = 'download', value = '', inline=False)
 
 
     elif commandName == 'echo':
@@ -317,8 +317,8 @@ async def help(ctx, commandName=None):
     elif commandName == 'steamid':
         helpEmbed.title = 'In depth help for'
         helpEmbed.add_field(name = commandName, value = 'Update your steam ID in my database\n\n\
-                                                            If you\'re new I\'ll create a new profile in my database and add your ID\n\n\
-                                                            Your steam ID directs me to your Steam profile\n\n\
+                                                            If you\'re new, I\'ll create a new profile in my database and add your ID.\n\n\
+                                                            Your steam ID directs me to your Steam profile.\n\n\
                                                             Make sure you set your acount to public though!')
         helpEmbed.add_field(name = 'Examples', value = '>>steamid 76561198286078396\n\n\
                                                         >>steamid 12345678912345678')
@@ -332,10 +332,10 @@ async def help(ctx, commandName=None):
         helpEmbed.add_field(name = 'Examples', value = '>>search ba @KingBubIII\n\n\
                                                         >>search ba')
 
-    #elif commandName == '':
-        #helpEmbed.title = 'In depth help for'
-        #helpEmbed.add_field(name = commandName, value = 'explain')
-        #helpEmbed.add_field(name = 'Examples', value = 'stuff')
+    # elif commandName == '':
+        # helpEmbed.title = 'In depth help for'
+        # helpEmbed.add_field(name = commandName, value = 'explain')
+        # helpEmbed.add_field(name = 'Examples', value = 'stuff')
 
     await ctx.send(embed=helpEmbed)
 
@@ -427,18 +427,18 @@ async def _update_lib(ctx, member):
         #opens connection to client website and downloads information
         uClient = uReq(steam_lib_link)
 
-        #mloads html content into variable
+        # loads html content into variable
         page_html = uClient.read()
-        #closes connection to client website
+        # closes connection to client website
         uClient.close()
 
-        #parse the html document, making soup object
+        # parse the html document, making soup object
         page_soup = soup(page_html, "html.parser")
 
-        #getting all game containers list
+        # getting all game containers list
         json_script = page_soup.find_all("script",{"language":"javascript"})
 
-        #editting data as a string to be convertable to a dictionary
+        # editing data as a string to be convertable to a dictionary
         all_game_info = json_script[0].next.split(';')[0]
         all_game_info = all_game_info[len("  			var rgGames = ["):-1]
         all_game_info = all_game_info.replace("},{", "},,{")
@@ -448,20 +448,20 @@ async def _update_lib(ctx, member):
         undicted_game_info = list(all_game_info.split(",,"))
 
         for game in undicted_game_info:
-            #makes dictionary for game to easily access information
+            # makes dictionary for game to easily access information
             game_info_dict = ast.literal_eval(game)
             if 'hours_forever' in game_info_dict:
                 steam_game_link = 'https://store.steampowered.com/app/' + str(game_info_dict['appid'])
             
-                #opens connection to client website and downloads information
+                # opens connection to client website and downloads information
                 uClient = uReq(steam_game_link)
 
-                #mloads html content into variable
+                # loads html content into variable
                 page_html = uClient.read()
-                #closes connection to client website
+                # closes connection to client website
                 uClient.close()
 
-                #parse the html document, making soup object
+                # parse the html document, making soup object
                 page_soup = soup(page_html, "html.parser")
 
                 json_script = page_soup.find_all("a", class_="app_tag")
@@ -490,26 +490,26 @@ async def _update_lib(ctx, member):
 # will give a common game suggestion between all mentioned members
 @discord_client.command()
 async def random(ctx, *members):
-    #get a result class
+    # get a result class
     result = await compare_func('-d', members)
 
-    #empty list init
+    # empty list init
     common_downloaded = []
 
-    #iterate through list one game at a time
+    # iterate through list one game at a time
     for item in result.data_array:
         #checks if both people have the game downloaded
         if 'Yes\n'*len(members) == item[1].replace('Downloaded: ', ''):
-            #add to temparary list to choose from later
+            # add to temporary list to choose from later
             common_downloaded.append(item)
     
-    #select random element in the list, therefore random game
+    # select random element in the list, therefore random game
     random_game = rd.choice(common_downloaded)
-    #create new embed variable
-    single_embed = discord.Embed(title = "Random Game", description = 'Choices are from downloaded only games' , color = discord.Color.blue())
-    #add field with chosen game name
+    # create new embed variable
+    single_embed = discord.Embed(title = "Random Game", description = 'Choices are from only downloaded games' , color = discord.Color.blue())
+    # add field with chosen game name
     single_embed.add_field(name = 'Random Game: ', value = random_game[0] , inline=False)
-    #send chosen game embed
+    # send chosen game embed
     await ctx.send(embed=single_embed)
 
 @discord_client.command()
@@ -538,5 +538,5 @@ async def uninstall(ctx, game_query=None):
                 name = results_lib.data_array[game_num][0]
                 db.mark_as(ctx.guild, member.name, download_query, False)
                 await ctx.send('```{0} has been marked as unistalled```'.format(name))
-#discord_client.loop.create_task(update_libs())
+# discord_client.loop.create_task(update_libs())
 discord_client.run(TOKEN)
