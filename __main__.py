@@ -9,21 +9,8 @@ import platform
 import random as rd
 import Rpi_db as db
 
-def Correct_path():
-    myos = platform.system()
-
-    if myos == 'Windows':
-        mypath = None
-    elif myos == "Linux":
-        mypath = '/home/kingbubiii/Documents/discordbotgamelib/'
-
-    return mypath
-
-#discord bot token needed to run bot
-if mypath == None:
-    TOKEN = str(open("token.txt").read())
-else:
-    TOKEN = str(open(mypath + "token.txt").read())
+TOKEN = open(('/home/kingbubiii/Documents/discordbotgamelib/' if platform.system() == 'Linux' else '') + 'token.txt').read()
+print(TOKEN)
 
 # creating client instance and identifying prefix for commands 
 prefix = '>>'

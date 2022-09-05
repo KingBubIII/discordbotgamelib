@@ -1,12 +1,9 @@
 import pymysql
-import ast
-
-from scipy.fft import idct
-from setuptools import Command
+import platform
 
 #connects to database using username and password
-#conn = pymysql.connect(user='beastPC', password='SunTitan6//6', host='192.168.1.116')
-conn = pymysql.connect(user='remotein', password='Barrel$rC00l', host='74.74.86.173')
+username, mypass, host_address = [line.strip() for line in open(('/home/kingbubiii/Documents/discordbotgamelib/' if platform.system() == 'Linux' else '') + 'mysql_login.txt').readlines()]
+conn = pymysql.connect(user=username, password=mypass, host=host_address)
 #cursor allows for commands to be run and collects outputs
 cursor = conn.cursor()
 
