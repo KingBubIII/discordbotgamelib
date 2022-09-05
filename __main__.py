@@ -527,5 +527,4 @@ async def uninstall(ctx, game_query=None):
                 name = results_lib.data_array[game_num][0]
                 db.mark_as(ctx.guild, member.name, download_query, False)
                 await ctx.send('```{0} has been marked as unistalled```'.format(name))
-# discord_client.loop.create_task(update_libs())
 discord_client.run(TOKEN)
