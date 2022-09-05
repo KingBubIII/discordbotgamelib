@@ -25,7 +25,7 @@ def get_game_ids(db_name,tbl_name):
     change_db(db_name)
 
     #command to get list of ids in user library
-    command = "SELECT {0} FROM `{1}`".format('steamID' if db_name=='masterData' else 'gameID', 'games' if db_name=='masterData' else tbl_name)
+    command = "SELECT `{0}` FROM `{1}`".format('steamID' if db_name=='masterData' else 'gameID', 'games' if db_name=='masterData' else tbl_name)
     #execute
     cursor.execute(command)
     #gets results into variable
