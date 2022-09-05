@@ -56,7 +56,7 @@ class Game:
     # function to build details specified by the member 
     def Format_Details(self, formatting):
         #listing all possible formatting details
-        Possible_formats = ['f','n','a','h','s','o','d','i']
+        Possible_formats = ['h','s','o','d','i']
         #creates a empty string to hold details as they are built
         formatted_details = ''
 

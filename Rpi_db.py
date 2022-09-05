@@ -1,8 +1,12 @@
 import pymysql
 import ast
 
+from scipy.fft import idct
+from setuptools import Command
+
 #connects to database using username and password
-conn = pymysql.connect(user='beastPC', password='SunTitan6//6', host='192.168.1.117')
+#conn = pymysql.connect(user='beastPC', password='SunTitan6//6', host='192.168.1.116')
+conn = pymysql.connect(user='remotein', password='Barrel$rC00l', host='74.74.86.173')
 #cursor allows for commands to be run and collects outputs
 cursor = conn.cursor()
 
@@ -21,7 +25,7 @@ def get_game_ids(db_name,tbl_name):
     change_db(db_name)
 
     #command to get list of ids in user library
-    command = "SELECT {0} FROM {1}".format('steamID' if db_name=='masterData' else 'gameID', 'games' if db_name=='masterData' else tbl_name)
+    command = "SELECT {0} FROM `{1}`".format('steamID' if db_name=='masterData' else 'gameID', 'games' if db_name=='masterData' else tbl_name)
     #execute
     cursor.execute(command)
     #gets results into variable
@@ -31,6 +35,13 @@ def get_game_ids(db_name,tbl_name):
     searchable_ids = [ int(result[0]) for result in results ]
 
     return searchable_ids
+
+def get_all_members():
+    change_db('masterData')
+    command = 'SELECT discordID FROM members'
+    cursor.execute(command)
+    membersID_list = [ row[0] for row in cursor.fetchall() ]
+    return membersID_list
 
 def update_db(server, discord_name, game_info_dict, tags, multiplayer):
 
@@ -74,20 +85,163 @@ def update_db(server, discord_name, game_info_dict, tags, multiplayer):
     #print(master_game_data)
     if not game_info_dict["appid"] in searchable_ids:
         #creates string of tuple to insert into members library if its a new game to them.
-        channel_data = repr((game_info_dict["appid"], float(game_info_dict["hours_forever"]), 0))
+        channel_data = repr((game_info_dict["appid"], float(game_info_dict["hours_forever"].replace(",","")), 0))
         #print(channel_data)
 
         #creates command to insert new games into library
-        command = "INSERT INTO {0} ( gameID, hours, downloaded) VALUES {1}".format(discord_name, channel_data)
+        command = "INSERT INTO `{0}` ( gameID, hours, downloaded) VALUES {1}".format(discord_name, channel_data)
         #executes command
         cursor.execute(command)
     else:
-        command = "UPDATE {0} SET hours={1} WHERE gameID={2}".format(discord_name, float(game_info_dict["hours_forever"]), game_info_dict["appid"])
+        command = "UPDATE `{0}` SET hours={1} WHERE gameID={2}".format(discord_name, float(game_info_dict["hours_forever"].replace(',','')), game_info_dict["appid"])
         #executes command
         cursor.execute(command)
         
     conn.commit()
 
-#show the table
-#show_table("server","member")
-#print('works')
+def profile_update(discord_id, steam_id):
+    change_db('masterData')
+    command = "SELECT discordID FROM members"
+    cursor.execute(command)
+    all_ids = cursor.fetchall()
+    all_ids = [id[0] for id in all_ids]
+
+    new_profile = None
+    
+    if not discord_id in all_ids:
+        command = "INSERT INTO members (discordID, steamID) VALUES (\'{0}\', \'{1}\')".format(discord_id, steam_id)
+        new_profile = True
+    else:
+        command = "UPDATE members SET steamID=\'{0}\' WHERE discordID=\'{1}\'".format(steam_id, discord_id)
+        new_profile = False
+
+    cursor.execute(command)
+    conn.commit()
+    return new_profile
+
+def format_details(formatting=None):
+    formatted_details = ""
+    #default choice if no formatting option is specified
+    if formatting == None:
+        formatted_details = 'Downloaded: (d)'
+    #user specified formatting
+    else:
+        #loops through each choice
+        for char in formatting:
+            #formats all details if 'a' is selected
+            if char == 'a':
+                formatted_details += 'Hours: (h)'+'\n'+'Online: (o)'+'\n'+'Downloaded: (d)' +'\n'+ 'Tags: (t)'
+                break
+            #other options format their respective details
+            else:
+                #hour count playing the game
+                if char == 'h':
+                    formatted_details += 'Hours: (h)'
+                #shows if its multiplayer compatable
+                if char == 'o':
+                    formatted_details += 'Online: (o)'
+                #shows if the mentioned user currently has it downloaded
+                if char == 'd':
+                    formatted_details += 'Downloaded: (d)'
+                if char == 't':
+                    formatted_details += 'Tags: (t)'
+                #adds new line character after each detail is formated for readability
+                if not char == formatting[-1]:
+                    formatted_details += '\n'
+    return formatted_details
+
+def readlib(server, libclass, formatting=None):
+    #select server database
+    change_db(server)
+    #chose order despending on if the hours formatting option is shown
+    orderby = 'mD.gameName ASC' if (formatting==None or not 'h' in formatting) else 'sD.hours DESC'
+    #get a list of each game in the library and its master data with it 
+    command = "SELECT mD.*, sD.* FROM masterData.games AS mD, `{0}`.`{1}` as sD WHERE mD.steamID = sD.gameID ORDER BY {2}".format(server, libclass.User, orderby)
+    cursor.execute(command)
+    #get the result
+    all_games = cursor.fetchall()
+
+    #loop through each game
+    for game in all_games:
+        #chose human readable outputs
+        downloaded = 'Yes' if game[6] else "No"
+        hours = str(game[5])
+        multiplayer = 'Yes' if game[2] else "No"
+        tags = game[3]
+        formatted_details = format_details(formatting)
+        formatted_details = formatted_details.replace('(d)',downloaded).replace('(h)',hours).replace('(o)',multiplayer).replace('(t)',tags)
+        
+        #temperary array
+        data = [game[1],formatted_details]
+        #add game and the details that have been formatted to library class data
+        libclass.data_array.append(data)
+
+def get_steam_link(member_class):
+    change_db('masterData')
+    command = 'SELECT steamID FROM members WHERE discordID={0}'.format(member_class.id)
+    cursor.execute(command)
+    steam_id = cursor.fetchone()[0]
+    link = "https://steamcommunity.com/profiles/" + str(steam_id) + "/games/?tab=all"
+    return link
+
+def search(server, member, query):
+    name_matches = []
+    change_db('masterData')
+    if not query == None:
+        command = 'SELECT * FROM games WHERE gameName LIKE \'{0}%\' ORDER BY gameName ASC'.format(query)
+        if len(query) > 1:
+            command = command.replace('\'','\'%',1)
+    else:
+        command = 'SELECT * FROM games ORDER BY gameName ASC'
+    cursor.execute(command)
+    master_matches = cursor.fetchall()
+
+    change_db(server)
+    
+    for game in master_matches:
+        command = 'SELECT * FROM {0} WHERE gameID=\'{1}\''.format(member, game[0])
+        cursor.execute(command)
+        local_match = cursor.fetchall()
+
+        if len(local_match) == 0:
+            continue
+        else:
+            downloaded = 'Yes' if local_match[0][2] else "No"
+            name_matches.append([game[1],format_details().replace('(d)',downloaded), game[0]])
+    return name_matches
+
+def mark_as(server, member, game_id, set_as):
+    change_db(server)
+    command = "UPDATE `{0}` SET downloaded={1} WHERE gameID={2}".format(member, 1 if set_as else 0, game_id)
+    cursor.execute(command)
+    conn.commit()
+
+def compare(server, members, libclass, format):
+    change_db(server)
+    additional_tables = ["","",""]
+    if len(members) > 2:
+        for count in range(2, len(members)):
+            additional_tables[0] += ', pD{0}.*'.format(count)
+            additional_tables[1] += ', `{0}`.`{1}` as pD{2}'.format(server, members[count], count)
+            additional_tables[2] += ' AND pD{0}.gameID = pD{1}.gameID'.format(count-1,count)
+    command = 'SELECT mD.*, pD0.*, pD1.*{3} FROM masterData.games as mD, `{0}`.`{1}` AS pD0, `{0}`.`{2}` as pD1{4} WHERE mD.steamID = pD0.gameID AND pD0.gameID = pD1.gameID{5}'.format(server, members[0], members[1],additional_tables[0], additional_tables[1], additional_tables[2])
+    cursor.execute(command)
+    common_games = cursor.fetchall()
+
+    #loop through each game
+    for game in common_games:
+        all_member_details = []
+        for member_index in range(len(members)):
+
+            #chose human readable outputs
+            downloaded = 'Yes' if game[3+(3*(member_index+1))] else "No"
+            hours = str(game[2+(3*(member_index+1))])
+            multiplayer = 'Yes' if game[2] else "No"
+            tags = game[3]
+            formatted_details = format_details(format)
+            formatted_details = formatted_details.replace('(d)',downloaded).replace('(h)',hours).replace('(o)',multiplayer).replace('(t)',tags)
+            all_member_details.append(formatted_details)
+        #temperary array
+        data = [game[1],all_member_details]
+        #add game and the details that have been formatted to library class data
+        libclass.data_array.append(data)
