@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-from discord.ui import Button
+from discord.ui import Button, View
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from urllib.request import urlopen as uReq
@@ -94,31 +94,49 @@ class Library:
         #standard call for an individual member
         else:
             return discord.Embed(title = self.User + "'s library", description = "Mentioned user's library" , color = discord.Color.orange())
+    
+    async def getView(self):
+
+        # creates an element for a response with discord buttons 
+        myView = View()
+        
+        if self.PageNumber > 0:
+            if self.PageNumber > 1:
+                myView.add_item(self.beginning)
+            myView.add_item(self.backward)
+
+        if self.PageNumber < len(self.Embeds)-1:
+            myView.add_item(self.forward)
+            if self.PageNumber < len(self.Embeds)-1:
+                myView.add_item(self.end)
+
+        return myView
+
     # returns current embed page 
     def CurrentPage(self):
         return self.Embeds[self.PageNumber]
 
     async def BEGINNING(self, interaction):
         self.PageNumber = 0
-        await interaction.response.edit_message(embed=self.CurrentPage())
+        await interaction.response.edit_message(embed=self.CurrentPage(), view=await self.getView())
 
     async def FORWORD(self, interaction):
         if self.PageNumber < len(self.Embeds)-1:
             self.PageNumber += 1
         else:
             self.PageNumber = 0
-        await interaction.response.edit_message(embed=self.CurrentPage())
+        await interaction.response.edit_message(embed=self.CurrentPage(), view=await self.getView())
 
     async def BACKWORD(self, interaction):
         if self.PageNumber > 0:
             self.PageNumber -= 1
         else:
             self.PageNumber = len(self.Embeds)-1
-        await interaction.response.edit_message(embed=self.CurrentPage())
+        await interaction.response.edit_message(embed=self.CurrentPage(), view=await self.getView())
 
     async def END(self, interaction):
         self.PageNumber = len(self.Embeds)-1
-        await interaction.response.edit_message(embed=self.CurrentPage())
+        await interaction.response.edit_message(embed=self.CurrentPage(), view=await self.getView())
     
     # init class variable
     def __init__(self, User=None, data=None):
@@ -138,14 +156,14 @@ class Library:
         self.DownloadReacts = ['1️⃣','2️⃣','3️⃣','4️⃣','5️⃣']
         self.Possible_formats = ['h','o','d','t']
         
-        self.beginning = Button( style=discord.ButtonStyle.grey, emoji=self.NavigationReacts[0])
+        self.beginning = Button( style=discord.ButtonStyle.grey, emoji=self.NavigationReacts[0], row=0)
         self.beginning.callback = self.BEGINNING
         
-        self.forward = Button(style=discord.ButtonStyle.grey, emoji=self.NavigationReacts[2])
+        self.forward = Button(style=discord.ButtonStyle.grey, emoji=self.NavigationReacts[2], row=0)
         self.forward.callback = self.FORWORD
         
-        self.backward = Button(style=discord.ButtonStyle.grey, emoji=self.NavigationReacts[1])
+        self.backward = Button(style=discord.ButtonStyle.grey, emoji=self.NavigationReacts[1], row=0)
         self.backward.callback = self.BACKWORD
         
-        self.end = Button(style=discord.ButtonStyle.grey, emoji=self.NavigationReacts[3])
+        self.end = Button(style=discord.ButtonStyle.grey, emoji=self.NavigationReacts[3], row=0)
         self.end.callback = self.END

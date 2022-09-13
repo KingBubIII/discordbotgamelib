@@ -346,18 +346,9 @@ async def readlib(  ctx: discord.ApplicationContext,
     db.readlib(ctx.guild, UsersLibrary, details)
     # creates embed pages
     await create_embeds(UsersLibrary, None)
-
-    # creates an element for a response with discord buttons 
-    myView = View()
-    
-    # adds buttons to view element
-    myView.add_item(UsersLibrary.beginning)
-    myView.add_item(UsersLibrary.backward)
-    myView.add_item(UsersLibrary.forward)
-    myView.add_item(UsersLibrary.end)
     
     # sends inital reponse
-    await ctx.respond(embed=UsersLibrary.CurrentPage(), view=myView)
+    await ctx.respond(embed=UsersLibrary.CurrentPage(), view=await UsersLibrary.getView())
 
 # runs the Search_func command
 @discord_client.command()
