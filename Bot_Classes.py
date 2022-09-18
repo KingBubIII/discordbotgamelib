@@ -139,7 +139,7 @@ class Library:
         await interaction.response.edit_message(embed=self.CurrentPage(), view=await self.getView())
     
     # init class variable
-    def __init__(self, User=None, data=None):
+    def __init__(self, User=None, data=None, called_from=None):
         self.User = User
         self.PageNumber = 0
         if data == None:
@@ -155,6 +155,7 @@ class Library:
         self.NavigationReacts = ['⏪', '◀️', '▶️', '⏩']
         self.DownloadReacts = ['1️⃣','2️⃣','3️⃣','4️⃣','5️⃣']
         self.Possible_formats = ['h','o','d','t']
+        self.called_from = called_from
         
         self.beginning = Button( style=discord.ButtonStyle.grey, emoji=self.NavigationReacts[0], row=0)
         self.beginning.callback = self.BEGINNING

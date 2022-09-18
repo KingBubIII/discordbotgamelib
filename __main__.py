@@ -27,28 +27,20 @@ discord_client = commands.Bot(command_prefix=prefix, intents=intents)
 discord_client.remove_command('help')
 
 # allows users to search libraries, their own or others, for game names
-async def Search_func(ctx, search_query, user_query=None, called_from=False):
-    if user_query == None:
-        member = ctx.author
-    else:
-        member = await get_user_class(user_query)
+async def Search_func(ctx, search_query, member, called_from):
     results_data = db.search(ctx.guild, member.name, search_query)
     #print(results_data)
     if len(results_data) == 0:
         await ctx.respond('```I found no matches```')
         return False
     #creates a new library from results list 
-    results_lib = Library(User="results",data=results_data)
+    results_lib = Library(User="results", data=results_data, called_from=called_from)
 
     #creates embed from result class
     await create_embeds(results_lib, None)
 
-    #send first page of results embed back to member
-    response = await ctx.respond(embed=results_lib.CurrentPage())
-    #reacts with navigation emojis and database modification emojis if applicable
-    await results_lib.React(response,called_from)
     #send result embed
-    return response, results_lib
+    return results_lib
 
 # formats serveral pages of embeds using the format details specified by user
 async def create_embeds(libclass, members):
@@ -351,31 +343,17 @@ async def readlib(  ctx: discord.ApplicationContext,
     await ctx.respond(embed=UsersLibrary.CurrentPage(), view=await UsersLibrary.getView())
 
 # runs the Search_func command
-@discord_client.command()
-async def search(ctx, *args):
-    user_query=None
-    search_query=None
-    user_query, search_query = await Arg_Assign(args)
-    if search_query == None:
-        await ctx.respond('```You did not specify what to search with. Try again```')
-        return
+#@discord_client.command()
+@discord_client.slash_command(name = "search", description = "Search's a mentioned users library with your query")
+async def search(   ctx: discord.ApplicationContext,
+                    member: discord.Option(discord.Member, 'Mention only one person', required=True),
+                    details: discord.Option(str, 'You can use any number and combination of ', required=True)):
+
     #runs search command without being intention to change database values 
-    response, response_lib = await Search_func(ctx, search_query, user_query, False)
+    response_lib = await Search_func(ctx, details, member, 'search')
+    
+    await ctx.respond(embed=response_lib.CurrentPage(), view=await response_lib.getView())
 
-    @discord_client.event
-    async def on_reaction_add(reaction, user):
-        if user != discord_client.user:
-            
-            if reaction.emoji == response_lib.NavigationReacts[1]:
-                await reaction.message.delete()
-                response_lib.NextPage()
-
-            if reaction.emoji == response_lib.NavigationReacts[0]:
-                await reaction.message.delete()
-                response_lib.PreviousPage()
-                
-            response = await ctx.respond(embed=response_lib.CurrentPage())
-            await response_lib.React(response,False)
 
 @discord_client.command()
 async def steamid(ctx, steamID):
