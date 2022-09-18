@@ -347,18 +347,18 @@ async def readlib(  ctx: discord.ApplicationContext,
 @discord_client.slash_command(name = "search", description = "Search's a mentioned users library with your query")
 async def search(   ctx: discord.ApplicationContext,
                     member: discord.Option(discord.Member, 'Mention only one person', required=True),
-                    details: discord.Option(str, 'You can use any number and combination of ', required=True)):
+                    details: discord.Option(str, 'You can use any number and combination of ', required=True) ):
 
     #runs search command without being intention to change database values 
     response_lib = await Search_func(ctx, details, member, 'search')
     
     await ctx.respond(embed=response_lib.CurrentPage(), view=await response_lib.getView())
 
-
-@discord_client.command()
-async def steamid(ctx, steamID):
+@discord_client.slash_command(name = "steamid", description = "This is basically your profile in my database")
+async def steamid(  ctx: discord.ApplicationContext, 
+                    steamid: discord.Option(str, 'Find your Steam ID in your \'Account Details\'', required=True) ):
     #updates mysql database and returns boolean value
-    new_profile = db.profile_update(str(ctx.author.id), steamID)
+    new_profile = db.profile_update(str(ctx.author.id), steamid)
     
     #formats correct responce back
     msg = ""
@@ -368,7 +368,7 @@ async def steamid(ctx, steamID):
         msg = '```Your information has been updated```'
 
     #sends message back
-    await ctx.respond(msg)
+    await ctx.respond(msg, ephemeral=True)
 
 # a background function to update the database
 # updates hours played per game and adds new games purchased
