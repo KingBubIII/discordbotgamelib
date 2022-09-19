@@ -10,6 +10,7 @@ import platform
 import random as rd
 import Rpi_db as db
 import itertools
+import time
 
 # gets token from local file
 # uses linux or windows paths as needed
@@ -17,28 +18,23 @@ TOKEN = open(('/home/kingbubiii/Documents/discordbotgamelib/' if platform.system
 # print(TOKEN)
 
 # creating client instance and identifying prefix for commands 
-prefix = '>>'
 intents = discord.Intents.default()
 intents.members = True
 
-discord_client = commands.Bot(command_prefix=prefix, intents=intents)
-# discord_client.case_insensitive = True
-# removing default help command
+discord_client = commands.Bot(intents=intents)
 discord_client.remove_command('help')
 
 # allows users to search libraries, their own or others, for game names
 async def Search_func(ctx, search_query, member, called_from):
-    results_data = db.search(ctx.guild, member.name, search_query)
+    results_data = db.search(ctx.guild, member.name, search_query, called_from)
     #print(results_data)
     if len(results_data) == 0:
         await ctx.respond('```I found no matches```')
         return False
     #creates a new library from results list 
     results_lib = Library(User="results", data=results_data, called_from=called_from)
-
     #creates embed from result class
     await create_embeds(results_lib, None)
-
     #send result embed
     return results_lib
 
@@ -163,7 +159,7 @@ async def get_user_class(member_id_str):
 @discord_client.event
 async def on_ready():
     print('Ready set let\'s go')
-    await discord_client.change_presence(activity=discord.Activity(type=discord.ActivityType.playing, name=prefix + "help"))
+    await discord_client.change_presence(activity=discord.Activity(type=discord.ActivityType.playing, name="/help"))
 
 @discord_client.command()
 async def compare(ctx, *all_args):
@@ -195,32 +191,13 @@ async def compare(ctx, *all_args):
             await Common_lib.React(response,False)
 
 # member command to update database games as downloaded
-@discord_client.command()
-async def download(ctx, download_query=None):
-    member = await get_user_class(ctx.author.mention)
+@discord_client.slash_command(name = "download", description = "Allows you to write to the database to display what game you can play")
+async def download( ctx: discord.ApplicationContext, 
+                    search_query: discord.Option( str, description="Use this just like the search command", required=False) = None):
     #calls search command with 'Download' perameter
-    results, results_lib = await Search_func(ctx, download_query, None, called_from='Download')
-    
-    @discord_client.event
-    async def on_reaction_add(reaction, user):
-        if user != discord_client.user:
-            
-            if reaction.emoji in results_lib.NavigationReacts:
-                await reaction.message.delete()
-                if reaction.emoji == results_lib.NavigationReacts[0]:
-                    results_lib.PreviousPage()
-                elif reaction.emoji == results_lib.NavigationReacts[1]:
-                    results_lib.NextPage()
+    results_lib = await Search_func(ctx, search_query, ctx.author, called_from='download')
 
-                response = await ctx.respond(embed=results_lib.CurrentPage())
-                await results_lib.React(response,'Download')
-
-            if reaction.emoji in results_lib.DownloadReacts:
-                game_num = results_lib.PageNumber * results_lib.MaxGamesOnPage + results_lib.DownloadReacts.index(reaction.emoji)
-                download_query = results_lib.data_array[game_num][2]
-                name = results_lib.data_array[game_num][0]
-                db.mark_as(ctx.guild, member.name, download_query, True)
-                await ctx.respond('```{0} has been marked as downloaded```'.format(name))
+    await ctx.respond(embed=results_lib.CurrentPage(), view = await results_lib.getView(), ephemeral=True)
 
 # A simple command that repeats what was sent
 # mainly useful for debugging 
@@ -340,7 +317,7 @@ async def readlib(  ctx: discord.ApplicationContext,
     await create_embeds(UsersLibrary, None)
     
     # sends inital reponse
-    await ctx.respond(embed=UsersLibrary.CurrentPage(), view=await UsersLibrary.getView())
+    await ctx.respond(embed=UsersLibrary.CurrentPage(), view=await UsersLibrary.getView(), ephemeral=True if ctx.author.name == member.name else False)
 
 # runs the Search_func command
 #@discord_client.command()

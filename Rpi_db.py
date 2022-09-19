@@ -1,5 +1,6 @@
 import pymysql
 import platform
+import time
 
 # gets all host connection info from local file
 # uses linux or windows paths as needed
@@ -184,30 +185,28 @@ def get_steam_link(member_class):
     link = "https://steamcommunity.com/profiles/" + str(steam_id) + "/games/?tab=all"
     return link
 
-def search(server, member, query):
+def search(server, member, query, called_from):
+
+
+    ###################################################
     name_matches = []
     change_db('masterData')
     if not query == None:
-        command = 'SELECT * FROM games WHERE gameName LIKE \'{0}%\' ORDER BY gameName ASC'.format(query)
         if len(query) > 1:
-            command = command.replace('\'','\'%',1)
+            query = '%' + query
+        command = 'SELECT * FROM games JOIN `{0}`.`{1}` WHERE gameID=steamID AND gameName LIKE "{2}%";'.format(server, member, query)
     else:
         command = 'SELECT * FROM games ORDER BY gameName ASC'
     cursor.execute(command)
-    master_matches = cursor.fetchall()
+    matches = cursor.fetchall()
 
-    change_db(server)
-    
-    for game in master_matches:
-        command = 'SELECT * FROM {0} WHERE gameID=\'{1}\''.format(member, game[0])
-        cursor.execute(command)
-        local_match = cursor.fetchall()
-
-        if len(local_match) == 0:
-            continue
-        else:
-            downloaded = 'Yes' if local_match[0][2] else "No"
-            name_matches.append([game[1],format_details().replace('(d)',downloaded), game[0]])
+    for count, match in enumerate(matches):
+        #downloaded = 'Yes' if match[6] else 'No'
+        if called_from == 'download':
+            name_matches.append([match[1],'Press {0} to mark as downloaded'.format((count%5)+1), match[0]])
+        
+        #name_matches.append([match[1],format_details().replace('(d)',downloaded), match[0]])
+        
     return name_matches
 
 def mark_as(server, member, game_id, set_as):
