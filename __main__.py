@@ -445,30 +445,10 @@ async def random(ctx, *members):
     # send chosen game embed
     await ctx.respond(embed=single_embed)
 
-@discord_client.command()
-async def uninstall(ctx, game_query=None):
-    member = await get_user_class(ctx.author.mention)
-    #calls search command with 'Download' perameter
-    results, results_lib = await Search_func(ctx, game_query, None, called_from='Uninstall')
+@discord_client.slash_command(name = "uninstall", description = "Allows you to write to the database to remove what games are displayed that you can play")
+async def uninstall(    ctx: discord.ApplicationContext, 
+                        search_query: discord.Option( str, description="Use this just like the search command", required=False) = None):
     
-    @discord_client.event
-    async def on_reaction_add(reaction, user):
-        if user != discord_client.user:
-            
-            if reaction.emoji in results_lib.NavigationReacts:
-                await reaction.message.delete()
-                if reaction.emoji == results_lib.NavigationReacts[0]:
-                    results_lib.PreviousPage()
-                elif reaction.emoji == results_lib.NavigationReacts[1]:
-                    results_lib.NextPage()
-
-                response = await ctx.respond(embed=results_lib.CurrentPage())
-                await results_lib.React(response,'Uninstall')
-
-            if reaction.emoji in results_lib.DownloadReacts:
-                game_num = results_lib.PageNumber * results_lib.MaxGamesOnPage + results_lib.DownloadReacts.index(reaction.emoji)
-                download_query = results_lib.data_array[game_num][2]
-                name = results_lib.data_array[game_num][0]
-                db.mark_as(ctx.guild, member.name, download_query, False)
-                await ctx.respond('```{0} has been marked as unistalled```'.format(name))
+    results_lib = await Search_func(ctx, search_query, ctx.author, called_from='uninstall')
+    await ctx.respond(embed=results_lib.CurrentPage(), view = await results_lib.getView(), ephemeral=True)
 discord_client.run(TOKEN)
