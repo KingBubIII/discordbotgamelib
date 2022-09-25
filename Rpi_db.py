@@ -226,7 +226,7 @@ def compare(server, members, libclass, format):
             additional_tables[0] += ', pD{0}.*'.format(count)
             additional_tables[1] += ', `{0}`.`{1}` as pD{2}'.format(server, members[count], count)
             additional_tables[2] += ' AND pD{0}.gameID = pD{1}.gameID'.format(count-1,count)
-    command = 'SELECT mD.*, pD0.*, pD1.*{3} FROM masterData.games as mD, `{0}`.`{1}` AS pD0, `{0}`.`{2}` as pD1{4} WHERE mD.steamID = pD0.gameID AND pD0.gameID = pD1.gameID{5}'.format(server, members[0], members[1],additional_tables[0], additional_tables[1], additional_tables[2])
+    command = 'SELECT mD.*, pD0.*, pD1.*{3} FROM masterData.games as mD, `{0}`.`{1}` AS pD0, `{0}`.`{2}` as pD1{4} WHERE mD.steamID = pD0.gameID AND pD0.gameID = pD1.gameID{5}'.format(server, members[0], members[1], additional_tables[0], additional_tables[1], additional_tables[2])
     cursor.execute(command)
     common_games = cursor.fetchall()
 

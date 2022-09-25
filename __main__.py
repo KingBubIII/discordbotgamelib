@@ -103,7 +103,8 @@ async def create_embeds(libclass, members):
         if (((count+1)%libclass.MaxGamesOnPage) == 0 and count > 0) or count - len(libclass.data_array) == 0:
             libclass.AddPage()
     #if there are 5 or less items
-    if len(libclass.Embeds) == 0:
+    if  len(libclass.Page.fields) != 0:
+        libclass.NumOfNumReacts = len(libclass.Page.fields)
         libclass.AddPage()
 
 # allows command function arguments to be called from anywhere when using a command
@@ -151,7 +152,7 @@ async def compare_func(ctx, formatting, members):
     return Common_lib
 
 async def get_user_class(member_id_str):
-    member_class = discord_client.get_user(int(member_id_str.replace('<@!','').replace('>','')))
+    member_class = discord_client.get_user(int(member_id_str.replace('<@','').replace('>','').replace('!','')))
     return member_class
 
 # signal that the bot is online and ready to be used
@@ -161,34 +162,20 @@ async def on_ready():
     print('Ready set let\'s go')
     await discord_client.change_presence(activity=discord.Activity(type=discord.ActivityType.playing, name="/help"))
 
-@discord_client.command()
-async def compare(ctx, *all_args):
+@discord_client.slash_command(name = "compare", description = "Look at common games between multiple people libraries")
+async def compare(  ctx: discord.ApplicationContext,
+                    members: discord.Option( str, description="mention multiple people in here", required=True),
+                    formatting: discord.Option( str, description="formatting options exactly like readlib command", required=False)):
 
-    members, formatting = await Arg_Assign(all_args)
+    real_members = []
+    for item in members.split(" "):
+        if "<@" in item:
+            temp_user = await get_user_class(item)
+            real_members.append(temp_user.name)
 
-    for count in range(len(members)):
-        user_class = await get_user_class(members[count])
-        members[count] = user_class.name
+    Common_lib = await compare_func(ctx, formatting, real_members)
 
-    Common_lib = await compare_func(ctx, formatting, members)
-
-    response = await ctx.respond(embed=Common_lib.CurrentPage())
-    await Common_lib.React(response,False)
-
-    @discord_client.event
-    async def on_reaction_add(reaction, user):
-        if user != discord_client.user:
-            
-            if reaction.emoji == Common_lib.NavigationReacts[1]:
-                await reaction.message.delete()
-                Common_lib.NextPage()
-
-            if reaction.emoji == Common_lib.NavigationReacts[0]:
-                await reaction.message.delete()
-                Common_lib.PreviousPage()
-                
-            response = await ctx.respond(embed=Common_lib.CurrentPage())
-            await Common_lib.React(response,False)
+    response = await ctx.respond(embed=Common_lib.CurrentPage(), view= await Common_lib.getView())
 
 # member command to update database games as downloaded
 @discord_client.slash_command(name = "download", description = "Allows you to write to the database to display what game you can play")

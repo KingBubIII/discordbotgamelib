@@ -112,8 +112,9 @@ class Library:
                 myView.add_item(self.end)
 
         if self.called_from == 'download' or self.called_from == 'uninstall':
-            for myEmoji in self.NumReacts:
-                myButton = Button( style=discord.ButtonStyle.grey, emoji=myEmoji, row=1)
+            maxindex = 5 if self.PageNumber != len(self.Embeds)-1 else self.NumOfNumReacts
+            for index in range(maxindex):
+                myButton = Button( style=discord.ButtonStyle.grey, emoji=self.NumReacts[index], row=1)
                 myButton.callback = self.MARK_AS
                 myView.add_item(myButton)
 
@@ -180,6 +181,7 @@ class Library:
         self.Possible_formats = ['h','o','d','t']
         self.called_from = called_from
         self.view = View()
+        self.NumOfNumReacts = 5
         
         self.beginning = Button( style=discord.ButtonStyle.grey, emoji=self.NavigationReacts[0], row=0)
         self.beginning.callback = self.BEGINNING
