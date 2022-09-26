@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands
+from discord.ui import Button, View
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from urllib.request import urlopen as uReq
@@ -8,37 +9,7 @@ import ast
 from bs4 import BeautifulSoup as soup
 from Bot_Classes import *
 import platform 
-
-def Correct_path():
-    myos = platform.system()
-
-    if myos == 'Windows':
-        mypath = None
-    elif myos == "Linux":
-        mypath = '/home/kingbubiii/Documents/discordbotgamelib/'
-
-    return mypath
-
-#things to get setup with google, being authorized and whatnot
-scope = [
-    "https://spreadsheets.google.com/feeds",'https://www.googleapis.com/auth/spreadsheets',
-    "https://www.googleapis.com/auth/drive.file","https://www.googleapis.com/auth/drive"]
-
-#credentials in list
-mypath = Correct_path()
-if mypath == None:
-    creds = ServiceAccountCredentials.from_json_keyfile_name("creds.json", scope)
-else:
-    creds = ServiceAccountCredentials.from_json_keyfile_name(mypath + "creds.json", scope)
-
-#passes in all credentials to make sure changes/ viewing are allowed
-sheets_client = gspread.authorize(creds)
-
-# Open the spreadhseet
-wb = sheets_client.open('discord_bot_data')
-
-#open
-wks = wb.get_worksheet(0)
+import Rpi_db as db
 
 # class to hold individual game data
 class Game:
@@ -105,23 +76,6 @@ class Game:
 
 # class to hold multiple game info at once
 class Library:
-    # init class variable
-    def __init__(self, User=None, data=None):
-        self.User = User
-        self.PageNumber = 0
-        if data == None:
-            self.data_array = []
-        else:
-            self.data_array = data
-        self.Embeds = []
-        self.MaxGamesOnPage = 5
-        #creates variable to check how many games the program has done to know when to stop looking
-        self.GameCount = len(self.Embeds)
-        #creates a copy of the basic page
-        self.Page = self.NewEmbed()
-        self.NavigationReacts = ['⏪', '⏩']
-        self.DownloadReacts = ['1️⃣','2️⃣','3️⃣','4️⃣','5️⃣']
-
     # add an embed page
     def AddPage(self):
         #adds the current page to the embed list
@@ -141,41 +95,102 @@ class Library:
         #standard call for an individual member
         else:
             return discord.Embed(title = self.User + "'s library", description = "Mentioned user's library" , color = discord.Color.orange())
-
-    # increments what page is shown in discord
-    def NextPage(self):
-        self.PageNumber += 1
-
-    # decrements what page is shown in discord
-    def PreviousPage(self):
-        self.PageNumber -= 1
     
+    async def getView(self):
+
+        # creates an element for a response with discord buttons 
+        myView = View()
+        
+        if self.PageNumber > 0:
+            if self.PageNumber > 1:
+                myView.add_item(self.beginning)
+            myView.add_item(self.backward)
+
+        if self.PageNumber < len(self.Embeds)-1:
+            myView.add_item(self.forward)
+            if self.PageNumber < len(self.Embeds)-1:
+                myView.add_item(self.end)
+
+        if self.called_from == 'download' or self.called_from == 'uninstall':
+            maxindex = 5 if self.PageNumber != len(self.Embeds)-1 else self.NumOfNumReacts
+            for index in range(maxindex):
+                myButton = Button( style=discord.ButtonStyle.grey, emoji=self.NumReacts[index], row=1)
+                myButton.callback = self.MARK_AS
+                myView.add_item(myButton)
+
+        self.view = myView
+        return self.view
+
     # returns current embed page 
     def CurrentPage(self):
         return self.Embeds[self.PageNumber]
 
-    # defines what reactions do what when a member uses them
-    async def React(self, response, called_from):
-        #checks if there is embeds to show
-        if len(self.Embeds) > 1:
-            # if its the first page only add the forward reaction
-            if self.PageNumber == 0:
-                # reacts with emoji
-                await response.add_reaction(self.NavigationReacts[1])
-            # if its the last page only add the backward reaction
-            elif self.PageNumber == len(self.Embeds)-1:
-                # reacts with emoji
-                await response.add_reaction(self.NavigationReacts[0])
-            # if its any page besides first or last then add all reactions
-            else:
-                #loops through all reactions
-                for emoji in self.NavigationReacts:
-                    # reacts with emoji
-                    await response.add_reaction(emoji)
-        # if the member wants to mark games as downloaded in the data base
-        if called_from == 'Download' or called_from == 'Uninstall':
-            # loop though each download reaction
-            # 1 - 5 emojis "downloads" the respective game shown in the list
-            for emoji in self.DownloadReacts:
-                # reacts with emoji
-                await response.add_reaction(emoji)
+    async def BEGINNING(self, interaction):
+        self.PageNumber = 0
+        await interaction.response.edit_message(embed=self.CurrentPage(), view=await self.getView())
+
+    async def FORWORD(self, interaction):
+        if self.PageNumber < len(self.Embeds)-1:
+            self.PageNumber += 1
+        else:
+            self.PageNumber = 0
+        await interaction.response.edit_message(embed=self.CurrentPage(), view=await self.getView())
+
+    async def BACKWORD(self, interaction):
+        if self.PageNumber > 0:
+            self.PageNumber -= 1
+        else:
+            self.PageNumber = len(self.Embeds)-1
+        await interaction.response.edit_message(embed=self.CurrentPage(), view=await self.getView())
+
+    async def END(self, interaction):
+        self.PageNumber = len(self.Embeds)-1
+        await interaction.response.edit_message(embed=self.CurrentPage(), view=await self.getView())
+
+    async def MARK_AS(self, interaction):
+        button = discord.utils.get(self.view.children, custom_id=interaction.custom_id)
+        
+        gameid = self.data_array[(self.PageNumber*self.MaxGamesOnPage) + self.NumReacts.index(button.emoji.name)][2]
+        if self.called_from == 'download':
+            set_as = True
+        elif self.called_from == 'uninstall':
+            set_as = False
+        else:
+            set_as = None
+        
+        marked = db.mark_as(interaction.guild.name, interaction.user.name, gameid, set_as)
+
+        await interaction.channel.send("{0} has been marked as {1}".format(marked[0], 'downloaded' if marked[1] == 1 else 'uninstalled'))
+    
+    # init class variable
+    def __init__(self, User=None, data=None, called_from=None):
+        self.User = User
+        self.PageNumber = 0
+        if data == None:
+            self.data_array = []
+        else:
+            self.data_array = data
+        self.Embeds = []
+        self.MaxGamesOnPage = 5
+        #creates variable to check how many games the program has done to know when to stop looking
+        self.GameCount = len(self.Embeds)
+        #creates a copy of the basic page
+        self.Page = self.NewEmbed()
+        self.NavigationReacts = ['⏪', '◀️', '▶️', '⏩']
+        self.NumReacts = ['1️⃣','2️⃣','3️⃣','4️⃣','5️⃣']
+        self.Possible_formats = ['h','o','d','t']
+        self.called_from = called_from
+        self.view = View()
+        self.NumOfNumReacts = 5
+        
+        self.beginning = Button( style=discord.ButtonStyle.grey, emoji=self.NavigationReacts[0], row=0)
+        self.beginning.callback = self.BEGINNING
+        
+        self.forward = Button(style=discord.ButtonStyle.grey, emoji=self.NavigationReacts[2], row=0)
+        self.forward.callback = self.FORWORD
+        
+        self.backward = Button(style=discord.ButtonStyle.grey, emoji=self.NavigationReacts[1], row=0)
+        self.backward.callback = self.BACKWORD
+        
+        self.end = Button(style=discord.ButtonStyle.grey, emoji=self.NavigationReacts[3], row=0)
+        self.end.callback = self.END

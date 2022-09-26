@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 import discord
 from discord.ext import commands
+from discord.ui import Button, View
 from urllib.request import urlopen as uReq
 import ast
 from bs4 import BeautifulSoup as soup
@@ -8,45 +9,34 @@ from Bot_Classes import *
 import platform
 import random as rd
 import Rpi_db as db
+import itertools
+import time
 
 # gets token from local file
 # uses linux or windows paths as needed
 TOKEN = open(('/home/kingbubiii/Documents/discordbotgamelib/' if platform.system() == 'Linux' else '') + 'token.txt').read()
-print(TOKEN)
+# print(TOKEN)
 
 # creating client instance and identifying prefix for commands 
-prefix = '>>'
 intents = discord.Intents.default()
 intents.members = True
 
-discord_client = commands.Bot(command_prefix=prefix, intents=intents)
-# discord_client.case_insensitive = True
-# removing default help command
+discord_client = commands.Bot(intents=intents)
 discord_client.remove_command('help')
 
 # allows users to search libraries, their own or others, for game names
-async def Search_func(ctx, search_query, user_query=None, called_from=False):
-    if user_query == None:
-        member = ctx.author
-    else:
-        member = await get_user_class(user_query)
-    results_data = db.search(ctx.guild, member.name, search_query)
+async def Search_func(ctx, search_query, member, called_from):
+    results_data = db.search(ctx.guild, member.name, search_query, called_from)
     #print(results_data)
     if len(results_data) == 0:
-        await ctx.send('```I found no matches```')
+        await ctx.respond('```I found no matches```')
         return False
     #creates a new library from results list 
-    results_lib = Library(User="results",data=results_data)
-
+    results_lib = Library(User="results", data=results_data, called_from=called_from)
     #creates embed from result class
     await create_embeds(results_lib, None)
-
-    # send first page of results embed back to member
-    response = await ctx.send(embed=results_lib.CurrentPage())
-    # reacts with navigation emojis and database modification emojis if applicable
-    await results_lib.React(response,called_from)
     #send result embed
-    return response, results_lib
+    return results_lib
 
 # formats serveral pages of embeds using the format details specified by user
 async def create_embeds(libclass, members):
@@ -113,7 +103,8 @@ async def create_embeds(libclass, members):
         if (((count+1)%libclass.MaxGamesOnPage) == 0 and count > 0) or count - len(libclass.data_array) == 0:
             libclass.AddPage()
     #if there are 5 or less items
-    if len(libclass.Embeds) == 0:
+    if  len(libclass.Page.fields) != 0:
+        libclass.NumOfNumReacts = len(libclass.Page.fields)
         libclass.AddPage()
 
 # allows command function arguments to be called from anywhere when using a command
@@ -161,7 +152,7 @@ async def compare_func(ctx, formatting, members):
     return Common_lib
 
 async def get_user_class(member_id_str):
-    member_class = discord_client.get_user(int(member_id_str.replace('<@','').replace('>','')))
+    member_class = discord_client.get_user(int(member_id_str.replace('<@','').replace('>','').replace('!','')))
     return member_class
 
 # signal that the bot is online and ready to be used
@@ -169,97 +160,65 @@ async def get_user_class(member_id_str):
 @discord_client.event
 async def on_ready():
     print('Ready set let\'s go')
-    await discord_client.change_presence(activity=discord.Activity(type=discord.ActivityType.playing, name=prefix + "help"))
+    await discord_client.change_presence(activity=discord.Activity(type=discord.ActivityType.playing, name="/help"))
 
-@discord_client.command()
-async def compare(ctx, *all_args):
+@discord_client.slash_command(name = "compare", description = "Look at common games between multiple people libraries")
+async def compare(  ctx: discord.ApplicationContext,
+                    members: discord.Option( str, description="mention multiple people in here", required=True),
+                    formatting: discord.Option( str, description="formatting options exactly like readlib command", required=False)):
 
-    members, formatting = await Arg_Assign(all_args)
+    real_members = []
+    for item in members.split(" "):
+        if "<@" in item:
+            temp_user = await get_user_class(item)
+            real_members.append(temp_user.name)
 
-    for count in range(len(members)):
-        user_class = await get_user_class(members[count])
-        members[count] = user_class.name
+    Common_lib = await compare_func(ctx, formatting, real_members)
 
-    Common_lib = await compare_func(ctx, formatting, members)
-
-    response = await ctx.send(embed=Common_lib.CurrentPage())
-    await Common_lib.React(response,False)
-
-    @discord_client.event
-    async def on_reaction_add(reaction, user):
-        if user != discord_client.user:
-            
-            if reaction.emoji == Common_lib.NavigationReacts[1]:
-                await reaction.message.delete()
-                Common_lib.NextPage()
-
-            if reaction.emoji == Common_lib.NavigationReacts[0]:
-                await reaction.message.delete()
-                Common_lib.PreviousPage()
-                
-            response = await ctx.send(embed=Common_lib.CurrentPage())
-            await Common_lib.React(response,False)
+    response = await ctx.respond(embed=Common_lib.CurrentPage(), view= await Common_lib.getView())
 
 # member command to update database games as downloaded
-@discord_client.command()
-async def download(ctx, download_query=None):
-    member = await get_user_class(ctx.author.mention)
+@discord_client.slash_command(name = "download", description = "Allows you to write to the database to display what game you can play")
+async def download( ctx: discord.ApplicationContext, 
+                    search_query: discord.Option( str, description="Use this just like the search command", required=False) = None):
     #calls search command with 'Download' perameter
-    results, results_lib = await Search_func(ctx, download_query, None, called_from='Download')
-    
-    @discord_client.event
-    async def on_reaction_add(reaction, user):
-        if user != discord_client.user:
-            
-            if reaction.emoji in results_lib.NavigationReacts:
-                await reaction.message.delete()
-                if reaction.emoji == results_lib.NavigationReacts[0]:
-                    results_lib.PreviousPage()
-                elif reaction.emoji == results_lib.NavigationReacts[1]:
-                    results_lib.NextPage()
+    results_lib = await Search_func(ctx, search_query, ctx.author, called_from='download')
 
-                response = await ctx.send(embed=results_lib.CurrentPage())
-                await results_lib.React(response,'Download')
-
-            if reaction.emoji in results_lib.DownloadReacts:
-                game_num = results_lib.PageNumber * results_lib.MaxGamesOnPage + results_lib.DownloadReacts.index(reaction.emoji)
-                download_query = results_lib.data_array[game_num][2]
-                name = results_lib.data_array[game_num][0]
-                db.mark_as(ctx.guild, member.name, download_query, True)
-                await ctx.send('```{0} has been marked as downloaded```'.format(name))
+    await ctx.respond(embed=results_lib.CurrentPage(), view = await results_lib.getView(), ephemeral=True)
 
 # A simple command that repeats what was sent
 # mainly useful for debugging 
-@discord_client.command() 
-async def echo(ctx, *, msg='echo'):
-    # await ctx.send(f"""```{ctx.author.id}: {msg}```""")
-    # await ctx.send(f"""```{ctx.guild}```""")
-    await ctx.send(f"""```{msg}```""")
-    #test = discord.Embed(title = 'test', description = '\u00ae'*5 , color = discord.Color.blue())
-    #await ctx.send(embed=test)
+# @discord_client.command() 
+@discord_client.slash_command(name = "echo", description = "Say hello to the bot")
+async def echo(ctx, msg: str = 'echo'):
+    # await ctx.respond(f"""```{ctx.author.id}: {msg}```""")
+    # await ctx.respond(f"""```{ctx.guild}```""")
+    await ctx.respond(f"""```{msg}```""")
+    # test = discord.Embed(title = 'test', description = '\u00ae'*5 , color = discord.Color.blue())
+    # await ctx.respond(embed=test)
 
 # teaches members how to use bot
 # you can specify commands to get in-depth help on them
-@discord_client.command()
-async def help(ctx, commandName=None):
+@discord_client.slash_command(name = "help", description = "shows the list of avaible commands with a few examples")
+async def help( ctx: discord.ApplicationContext, 
+                command: discord.Option(str, 'Specify a command name to get more in depth help', required=False) = None):
+    
     helpEmbed = discord.Embed(title = 'basic bitch', color = discord.Color.orange())
 
-    if commandName == None:
+    if command == None:
         helpEmbed.title = 'List of short command descriptions'
-        helpEmbed.add_field(name = 'Command Prefix: ', value =  'put this, "' + prefix + '", in front of specified command name to be able to call the command', inline=False)
         helpEmbed.add_field(name = 'compare', value = 'Shows common games between all mentioned people in pagified version like reading a library', inline=False)
         helpEmbed.add_field(name = 'download', value = 'Page through library to select what games are downloaded locally on your pc', inline=False)
         helpEmbed.add_field(name = 'echo', value = 'Repeats what you say in a fancy code block', inline=False)
-        helpEmbed.add_field(name = 'help', value = 'One optional arguement: commandName\nSpecify a command\'s name to get more details on that command', inline=False)
-        helpEmbed.add_field(name = 'readlib', value = 'Allows you and others to read the games you have installed.', inline=False)
+        helpEmbed.add_field(name = 'readlib', value = 'Shows what games you have in your Steam library and details associated with it', inline=False)
         helpEmbed.add_field(name = 'search', value = 'Returns list of games in anyone\'s library that matches your search term', inline=False)
-        helpEmbed.add_field(name = 'steamid', value = 'Either creates new profile for member or updates exsisting Steam ID number', inline=False)
+        helpEmbed.add_field(name = 'steamid', value = 'Either creates new profile for you in my database or updates your exsisting profile', inline=False)
         # helpEmbed.add_field(name = 'download', value = '', inline=False)
 
 
-    elif commandName == 'echo':
+    elif command == 'echo':
         helpEmbed.title = 'In depth help for'
-        helpEmbed.add_field(name = commandName, value = 'Repeats what you say in a fancy code block\n\n\
+        helpEmbed.add_field(name = command, value = 'Repeats what you say in a fancy code block\n\n\
                                                         Optional command(s): message\n\n\
                                                         Default message to \'echo\'\n\n\
                                                         The arguement can be as long as you want including spaces\n\n \
@@ -268,26 +227,27 @@ async def help(ctx, commandName=None):
                                                         Filled arguement Output: This command is useless')
         helpEmbed.add_field(name = 'Examples', value = '>>echo testing testing')
 
-    elif commandName == 'readlib':
+    elif command == 'readlib':
         helpEmbed.title = 'In depth help for'
-        helpEmbed.add_field(name = commandName, value = 'Mention a person to read their library\n\n\
+        helpEmbed.add_field(name = command, value = 'Mention a person to read their library\n\n\
                                                         Manditory command(s): username\nOptional command(s): formatting\n\n\
                                                         Specify formatting by a \'-\' then put any combination of the letters\
-                                                        \'a\' \'h\' \'s\' \'o\' \'d\'\n\n\
+                                                        \'a\' \'h\' \'o\' \'d\' \'t\'\n\n\
                                                         \'a\' (All): It will display all avaiable info options\n\
                                                         \'h\' (Hours): Displays the number of hours you\'ve put into the game\n\
-                                                        \'s\' (Link): Gives game\'s Steam link\n\
                                                         \'o\' (Online): Displays if the game is multiplayer\n\
-                                                        \'d\' (Downloaded): Displays if you have the game downloaded')
+                                                        \'d\' (Downloaded): Displays if you have the game downloaded\n\
+                                                        \'t\' (Tags): Shows all the tags Steam has associated with it')
+        
 
         helpEmbed.add_field(name = 'Examples', value = '>>readlib @KingBubIII\n\n\
                                                         >>readlib @KingBubIII -a\n\n\
                                                         >>readlib @KingBubIII -hd\n\n\
                                                         >>readlib @KingBubIII -dhos\n\n')
 
-    elif commandName == 'compare':
+    elif command == 'compare':
         helpEmbed.title = 'In depth help for'
-        helpEmbed.add_field(name = commandName, value = 'See all games each mentioned person has in common\n\
+        helpEmbed.add_field(name = command, value = 'See all games each mentioned person has in common\n\
                                                         Can also show details using the details option of readlib')
         helpEmbed.add_field(name = 'Examples', value = '>>compare @KingBubIII @Test123\n\n\
                                                         >>compare @KingBubIII   @Test123 -d\n\
@@ -295,103 +255,75 @@ async def help(ctx, commandName=None):
                                                         >>compare @KingBubIII @Test123 -hso\n\
                                                         Shows common games while showing hours, Steam link, and if its multiplayer for each player')
 
-    elif commandName == 'download':
+    elif command == 'download':
         helpEmbed.title = 'In depth help for'
-        helpEmbed.add_field(name = commandName, value = 'This function allows you to mark games as downloaded in my database\n\n\
+        helpEmbed.add_field(name = command, value = 'This function allows you to mark games as downloaded in my database\n\n\
                                                         The output is the same as a readlib command but with numbered reaction options\n\n\
                                                         Reacting with a numbered reaction will mark that game on the current page as downloaded\n\n\
                                                         You are the only one that can mark games as downloaded in your library\n\n')
         helpEmbed.add_field(name = 'Examples', value = '>>download')
 
-    elif commandName == 'steamid':
+    elif command == 'steamid':
         helpEmbed.title = 'In depth help for'
-        helpEmbed.add_field(name = commandName, value = 'Update your steam ID in my database\n\n\
+        helpEmbed.add_field(name = command, value = 'Update your steam ID in my database\n\n\
                                                             If you\'re new, I\'ll create a new profile in my database and add your ID.\n\n\
                                                             Your steam ID directs me to your Steam profile.\n\n\
                                                             Make sure you set your acount to public though!')
         helpEmbed.add_field(name = 'Examples', value = '>>steamid 76561198286078396\n\n\
                                                         >>steamid 12345678912345678')
 
-    elif commandName == 'search':
+    elif command == 'search':
         helpEmbed.title = 'In depth help for'
-        helpEmbed.add_field(name = commandName, value = 'Just a basic search function\n\n\
+        helpEmbed.add_field(name = command, value = 'Just a basic search function\n\n\
                                                         The default library to search if you don\'t mention a person is your own\n\n\
                                                         Be as specific or as general as you would like\n\n\
                                                         Can only search one person\'s library at a time\n\n')
         helpEmbed.add_field(name = 'Examples', value = '>>search ba @KingBubIII\n\n\
                                                         >>search ba')
 
-    # elif commandName == '':
+    # elif command == '':
         # helpEmbed.title = 'In depth help for'
-        # helpEmbed.add_field(name = commandName, value = 'explain')
+        # helpEmbed.add_field(name = command, value = 'explain')
         # helpEmbed.add_field(name = 'Examples', value = 'stuff')
 
-    await ctx.send(embed=helpEmbed)
+    await ctx.respond(embed=helpEmbed)
 
 # sends a discord embed that users can page through to view all games and details in database
 # anyone can call to read another persons library
-@discord_client.command()
-async def readlib(ctx, *all_args):
+# @discord_client.command()
+@discord_client.slash_command(name = "readlib", description = "Read a specific person's library by mentioning them")
+async def readlib(  ctx: discord.ApplicationContext, 
+                    member: discord.Option(discord.Member, 'Mention only one person', required=True),
+                    details: discord.Option(str, 'You can use any number and combination of ', required=False)):
 
-    member, formatting = await Arg_Assign(all_args)
-    if member == None:
-        member = await get_user_class(ctx.author.mention)
-    else:
-        member = await get_user_class(member)
+    # creates library for user
     UsersLibrary = Library(User=member.name)
 
-    db.readlib(ctx.guild, UsersLibrary, formatting)
+    # fetches library info from mysql database
+    db.readlib(ctx.guild, UsersLibrary, details)
+    # creates embed pages
     await create_embeds(UsersLibrary, None)
     
-    response = await ctx.send(embed=UsersLibrary.CurrentPage())
-    await UsersLibrary.React(response,False)
-
-    @discord_client.event
-    async def on_reaction_add(reaction, user):
-        if user != discord_client.user:
-            
-            if reaction.emoji == UsersLibrary.NavigationReacts[1]:
-                await reaction.message.delete()
-                UsersLibrary.NextPage()
-
-            if reaction.emoji == UsersLibrary.NavigationReacts[0]:
-                await reaction.message.delete()
-                UsersLibrary.PreviousPage()
-                
-            response = await ctx.send(embed=UsersLibrary.CurrentPage())
-            await UsersLibrary.React(response,False)
+    # sends inital reponse
+    await ctx.respond(embed=UsersLibrary.CurrentPage(), view=await UsersLibrary.getView(), ephemeral=True if ctx.author.name == member.name else False)
 
 # runs the Search_func command
-@discord_client.command()
-async def search(ctx, *args):
-    user_query=None
-    search_query=None
-    user_query, search_query = await Arg_Assign(args)
-    if search_query == None:
-        await ctx.send('```You did not specify what to search with. Try again```')
-        return
+#@discord_client.command()
+@discord_client.slash_command(name = "search", description = "Search's a mentioned users library with your query")
+async def search(   ctx: discord.ApplicationContext,
+                    member: discord.Option(discord.Member, 'Mention only one person', required=True),
+                    details: discord.Option(str, 'You can use any number and combination of ', required=True) ):
+
     #runs search command without being intention to change database values 
-    response, response_lib = await Search_func(ctx, search_query, user_query, False)
+    response_lib = await Search_func(ctx, details, member, 'search')
+    
+    await ctx.respond(embed=response_lib.CurrentPage(), view=await response_lib.getView())
 
-    @discord_client.event
-    async def on_reaction_add(reaction, user):
-        if user != discord_client.user:
-            
-            if reaction.emoji == response_lib.NavigationReacts[1]:
-                await reaction.message.delete()
-                response_lib.NextPage()
-
-            if reaction.emoji == response_lib.NavigationReacts[0]:
-                await reaction.message.delete()
-                response_lib.PreviousPage()
-                
-            response = await ctx.send(embed=response_lib.CurrentPage())
-            await response_lib.React(response,False)
-
-@discord_client.command()
-async def steamid(ctx, steamID):
+@discord_client.slash_command(name = "steamid", description = "This is basically your profile in my database")
+async def steamid(  ctx: discord.ApplicationContext, 
+                    steamid: discord.Option(str, 'Find your Steam ID in your \'Account Details\'', required=True) ):
     #updates mysql database and returns boolean value
-    new_profile = db.profile_update(str(ctx.author.id), steamID)
+    new_profile = db.profile_update(str(ctx.author.id), steamid)
     
     #formats correct responce back
     msg = ""
@@ -401,7 +333,7 @@ async def steamid(ctx, steamID):
         msg = '```Your information has been updated```'
 
     #sends message back
-    await ctx.send(msg)
+    await ctx.respond(msg, ephemeral=True)
 
 # a background function to update the database
 # updates hours played per game and adds new games purchased
@@ -468,13 +400,13 @@ async def _update_lib(ctx, member):
                     if trademark in game_info_dict['name']:
                         game_info_dict['name'] = game_info_dict['name'].replace(trademark,chr(int(trademark.replace('u',''), 16)))
 
-                #updates Rpi database
+                # updates Rpi database
                 db.update_db(ctx.guild.name, member.name ,game_info_dict,', '.join(tags), db_multiplayer)
-            #await ctx.send("```I do not have a Steam ID for you, please go input one with the 'steamid' command```")
+            # await ctx.respond("```I do not have a Steam ID for you, please go input one with the 'steamid' command```")
             
-        await ctx.send("```Your library has been updated```")
+        await ctx.respond("```Your library has been updated```")
     else:
-        await ctx.send("```Member does not exsist in my database. Use the steamID command to get started```")
+        await ctx.respond("```Member does not exsist in my database. Use the steamID command to get started```")
 
 # will give a common game suggestion between all mentioned members
 @discord_client.command()
@@ -499,33 +431,12 @@ async def random(ctx, *members):
     # add field with chosen game name
     single_embed.add_field(name = 'Random Game: ', value = random_game[0] , inline=False)
     # send chosen game embed
-    await ctx.send(embed=single_embed)
+    await ctx.respond(embed=single_embed)
 
-@discord_client.command()
-async def uninstall(ctx, game_query=None):
-    member = await get_user_class(ctx.author.mention)
-    #calls search command with 'Download' perameter
-    results, results_lib = await Search_func(ctx, game_query, None, called_from='Uninstall')
+@discord_client.slash_command(name = "uninstall", description = "Allows you to write to the database to remove what games are displayed that you can play")
+async def uninstall(    ctx: discord.ApplicationContext, 
+                        search_query: discord.Option( str, description="Use this just like the search command", required=False) = None):
     
-    @discord_client.event
-    async def on_reaction_add(reaction, user):
-        if user != discord_client.user:
-            
-            if reaction.emoji in results_lib.NavigationReacts:
-                await reaction.message.delete()
-                if reaction.emoji == results_lib.NavigationReacts[0]:
-                    results_lib.PreviousPage()
-                elif reaction.emoji == results_lib.NavigationReacts[1]:
-                    results_lib.NextPage()
-
-                response = await ctx.send(embed=results_lib.CurrentPage())
-                await results_lib.React(response,'Uninstall')
-
-            if reaction.emoji in results_lib.DownloadReacts:
-                game_num = results_lib.PageNumber * results_lib.MaxGamesOnPage + results_lib.DownloadReacts.index(reaction.emoji)
-                download_query = results_lib.data_array[game_num][2]
-                name = results_lib.data_array[game_num][0]
-                db.mark_as(ctx.guild, member.name, download_query, False)
-                await ctx.send('```{0} has been marked as unistalled```'.format(name))
-# discord_client.loop.create_task(update_libs())
+    results_lib = await Search_func(ctx, search_query, ctx.author, called_from='uninstall')
+    await ctx.respond(embed=results_lib.CurrentPage(), view = await results_lib.getView(), ephemeral=True)
 discord_client.run(TOKEN)

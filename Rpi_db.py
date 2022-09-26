@@ -1,5 +1,6 @@
 import pymysql
 import platform
+import time
 
 # gets all host connection info from local file
 # uses linux or windows paths as needed
@@ -25,7 +26,7 @@ def get_game_ids(db_name,tbl_name):
     change_db(db_name)
 
     #command to get list of ids in user library
-    command = "SELECT {0} FROM `{1}`".format('steamID' if db_name=='masterData' else 'gameID', 'games' if db_name=='masterData' else tbl_name)
+    command = "SELECT `{0}` FROM `{1}`".format('steamID' if db_name=='masterData' else 'gameID', 'games' if db_name=='masterData' else tbl_name)
     #execute
     cursor.execute(command)
     #gets results into variable
@@ -184,30 +185,27 @@ def get_steam_link(member_class):
     link = "https://steamcommunity.com/profiles/" + str(steam_id) + "/games/?tab=all"
     return link
 
-def search(server, member, query):
+def search(server, member, query, called_from):
     name_matches = []
     change_db('masterData')
-    if not query == None:
-        command = 'SELECT * FROM games WHERE gameName LIKE \'{0}%\' ORDER BY gameName ASC'.format(query)
+    if query != None:
         if len(query) > 1:
-            command = command.replace('\'','\'%',1)
+            query = '%' + query
+        query = " AND gameName LIKE \"{0}%\"".format(query)
     else:
-        command = 'SELECT * FROM games ORDER BY gameName ASC'
+        query = ""
+    command = 'SELECT * FROM games JOIN `{0}`.`{1}` WHERE gameID=steamID{2} ORDER BY gameName ASC'.format(server, member, query)
     cursor.execute(command)
-    master_matches = cursor.fetchall()
+    matches = cursor.fetchall()
 
-    change_db(server)
-    
-    for game in master_matches:
-        command = 'SELECT * FROM {0} WHERE gameID=\'{1}\''.format(member, game[0])
-        cursor.execute(command)
-        local_match = cursor.fetchall()
-
-        if len(local_match) == 0:
-            continue
-        else:
-            downloaded = 'Yes' if local_match[0][2] else "No"
-            name_matches.append([game[1],format_details().replace('(d)',downloaded), game[0]])
+    for count, match in enumerate(matches):
+        #downloaded = 'Yes' if match[6] else 'No'
+        if called_from == 'download':
+            name_matches.append([match[1],'Press {0} to mark as downloaded'.format((count%5)+1), match[0]])
+        elif called_from == 'uninstall':
+            name_matches.append([match[1],'Press {0} to mark as uninstalled'.format((count%5)+1), match[0]])
+        #name_matches.append([match[1],format_details().replace('(d)',downloaded), match[0]])
+        
     return name_matches
 
 def mark_as(server, member, game_id, set_as):
@@ -215,6 +213,10 @@ def mark_as(server, member, game_id, set_as):
     command = "UPDATE `{0}` SET downloaded={1} WHERE gameID={2}".format(member, 1 if set_as else 0, game_id)
     cursor.execute(command)
     conn.commit()
+    
+    command = "SELECT gameName, downloaded FROM `masterData`.`games` JOIN `{0}`.`{1}` WHERE steamID = '{2}' AND gameID = '{2}'".format(server, member, game_id)
+    cursor.execute(command)
+    return cursor.fetchone()
 
 def compare(server, members, libclass, format):
     change_db(server)
@@ -224,7 +226,7 @@ def compare(server, members, libclass, format):
             additional_tables[0] += ', pD{0}.*'.format(count)
             additional_tables[1] += ', `{0}`.`{1}` as pD{2}'.format(server, members[count], count)
             additional_tables[2] += ' AND pD{0}.gameID = pD{1}.gameID'.format(count-1,count)
-    command = 'SELECT mD.*, pD0.*, pD1.*{3} FROM masterData.games as mD, `{0}`.`{1}` AS pD0, `{0}`.`{2}` as pD1{4} WHERE mD.steamID = pD0.gameID AND pD0.gameID = pD1.gameID{5}'.format(server, members[0], members[1],additional_tables[0], additional_tables[1], additional_tables[2])
+    command = 'SELECT mD.*, pD0.*, pD1.*{3} FROM masterData.games as mD, `{0}`.`{1}` AS pD0, `{0}`.`{2}` as pD1{4} WHERE mD.steamID = pD0.gameID AND pD0.gameID = pD1.gameID{5}'.format(server, members[0], members[1], additional_tables[0], additional_tables[1], additional_tables[2])
     cursor.execute(command)
     common_games = cursor.fetchall()
 
