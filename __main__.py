@@ -338,9 +338,9 @@ async def steamid(  ctx: discord.ApplicationContext,
 # a background function to update the database
 # updates hours played per game and adds new games purchased
 # function only updates one member's library
-@discord_client.command()
-async def _update_lib(ctx, member):
-    member = await get_user_class(member)
+@discord_client.slash_command(name = "update_lib", description = "Only my creator can use this command. This will eventually be a background task")
+async def _update_lib(  ctx: discord.ApplicationContext,
+                        member: discord.Option(discord.User, 'Mention user who library needs updating', required=True) ):
     usernames_list = db.get_all_members()
     # runs if memeber has steam info inputted
     if str(member.id) in usernames_list:
@@ -404,9 +404,9 @@ async def _update_lib(ctx, member):
                 db.update_db(ctx.guild.name, member.name ,game_info_dict,', '.join(tags), db_multiplayer)
             # await ctx.respond("```I do not have a Steam ID for you, please go input one with the 'steamid' command```")
             
-        await ctx.respond("```Your library has been updated```")
+        await ctx.respond("```Your library has been updated```", ephemeral=True)
     else:
-        await ctx.respond("```Member does not exsist in my database. Use the steamID command to get started```")
+        await ctx.respond("```Member does not exsist in my database. Use the steamID command to get started```", ephemeral=True)
 
 # will give a common game suggestion between all mentioned members
 @discord_client.command()

@@ -12,6 +12,8 @@ conn = pymysql.connect(user=username, password=mypass, host=host_address)
 cursor = conn.cursor()
 
 def change_db(db_name):
+    command = 'CREATE DATABASE IF NOT EXISTS `{0}`'.format(db_name)
+    cursor.execute(command)
     #choses what database to use
     cursor.execute('USE `{0}`'.format(db_name));
 
@@ -59,30 +61,14 @@ def update_db(server, discord_name, game_info_dict, tags, multiplayer):
         #executes command
         cursor.execute(command.format(master_game_data))
 
-    #checking if the server database exists
-    command = "SHOW DATABASES WHERE `database` = \'{0}\'".format(server)
-    cursor.execute(command)
-    db_exists = True if not len(cursor.fetchall()) == 0 else False
-    
-    #create the database if it does not exist
-    if not db_exists:
-        command = "CREATE DATABASE `{0}`".format(server)
-        cursor.execute(command)
-        conn.commit()
+    change_db(server)
     
     #checks if the member exists
-    change_db(server)
-    command = "SHOW TABLES LIKE \'{0}\'".format(discord_name)
+    command = "CREATE TABLE IF NOT EXISTS `{0}` LIKE `server`.`member`".format(discord_name)
     cursor.execute(command)
-    tbl_exists = True if not len(cursor.fetchall()) == 0 else False
-
-    if not tbl_exists:
-        command = "CREATE TABLE `{0}` LIKE server.member".format(discord_name)
-        cursor.execute(command)
-        conn.commit()
 
     #list comprehention to format it to one dimention list
-    searchable_ids = get_game_ids(server,discord_name)
+    searchable_ids = get_game_ids(server, discord_name)
     #print(master_game_data)
     if not game_info_dict["appid"] in searchable_ids:
         #creates string of tuple to insert into members library if its a new game to them.
