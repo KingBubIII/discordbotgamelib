@@ -26,7 +26,7 @@ discord_client.remove_command('help')
 
 # allows users to search libraries, their own or others, for game names
 async def Search_func(ctx, search_query, member, called_from):
-    results_data = db.search(ctx.guild, member.name, search_query, called_from)
+    results_data = db.search(member.name, search_query, called_from)
     #print(results_data)
     if len(results_data) == 0:
         await ctx.respond('```I found no matches```')
@@ -147,7 +147,7 @@ async def compare_func(ctx, formatting, members):
     peoples_games = []
 
     Common_lib = Library(User = "Common Games")
-    db.compare(ctx.guild, members, Common_lib, formatting)
+    db.compare(members, Common_lib, formatting)
     await create_embeds(Common_lib, members)
     return Common_lib
 
@@ -300,7 +300,7 @@ async def readlib(  ctx: discord.ApplicationContext,
     UsersLibrary = Library(User=member.name)
 
     # fetches library info from mysql database
-    db.readlib(ctx.guild, UsersLibrary, details)
+    db.readlib(UsersLibrary, details)
     # creates embed pages
     await create_embeds(UsersLibrary, None)
     
@@ -312,10 +312,10 @@ async def readlib(  ctx: discord.ApplicationContext,
 @discord_client.slash_command(name = "search", description = "Search's a mentioned users library with your query")
 async def search(   ctx: discord.ApplicationContext,
                     member: discord.Option(discord.Member, 'Mention only one person', required=True),
-                    details: discord.Option(str, 'You can use any number and combination of ', required=True) ):
+                    query: discord.Option(str, 'search a term or the starting letter', required=True) ):
 
     #runs search command without being intention to change database values 
-    response_lib = await Search_func(ctx, details, member, 'search')
+    response_lib = await Search_func(ctx, query, member, 'search')
     
     await ctx.respond(embed=response_lib.CurrentPage(), view=await response_lib.getView())
 
@@ -401,7 +401,7 @@ async def _update_lib(  ctx: discord.ApplicationContext,
                         game_info_dict['name'] = game_info_dict['name'].replace(trademark,chr(int(trademark.replace('u',''), 16)))
 
                 # updates Rpi database
-                db.update_db(ctx.guild.name, member.name ,game_info_dict,', '.join(tags), db_multiplayer)
+                db.update_db(member.name, game_info_dict,', '.join(tags), db_multiplayer)
             # await ctx.respond("```I do not have a Steam ID for you, please go input one with the 'steamid' command```")
             
         await ctx.respond("```Your library has been updated```", ephemeral=True)

@@ -10,25 +10,17 @@ username, mypass, host_address = [line.strip() for line in open(('/home/kingbubi
 conn = pymysql.connect(user=username, password=mypass, host=host_address)
 #cursor allows for commands to be run and collects outputs
 cursor = conn.cursor()
-
-def change_db(db_name):
-    command = 'CREATE DATABASE IF NOT EXISTS `{0}`'.format(db_name)
-    cursor.execute(command)
-    #choses what database to use
-    cursor.execute('USE `{0}`'.format(db_name));
+cursor.execute('USE discord_data')
 
 def show_table(db_name, tbl_name):
-    change_db(db_name)
     #view all data in member table
     cursor.execute("SELECT * FROM `{0}`".format(tbl_name))
     for item in cursor.fetchall():
         print(*item)
 
-def get_game_ids(db_name,tbl_name):
-    change_db(db_name)
-
+def get_game_ids(tbl_name):
     #command to get list of ids in user library
-    command = "SELECT `{0}` FROM `{1}`".format('steamID' if db_name=='masterData' else 'gameID', 'games' if db_name=='masterData' else tbl_name)
+    command = "SELECT `{0}` FROM `{1}`".format('steamID' if tbl_name=='masterUsersList' else 'gameID', tbl_name)
     #execute
     cursor.execute(command)
     #gets results into variable
@@ -40,35 +32,31 @@ def get_game_ids(db_name,tbl_name):
     return searchable_ids
 
 def get_all_members():
-    change_db('masterData')
-    command = 'SELECT discordID FROM members'
+    command = 'SELECT discordID FROM masterUsersList'
     cursor.execute(command)
     membersID_list = [ row[0] for row in cursor.fetchall() ]
     return membersID_list
 
-def update_db(server, discord_name, game_info_dict, tags, multiplayer):
+def update_db(discord_name, game_info_dict, tags, multiplayer):
 
     #get list of all ids in master data
-    master_game_ids = get_game_ids('masterData','games')
+    master_game_ids = get_game_ids('masterGamesList')
     
     if not game_info_dict["appid"] in master_game_ids:
         #created string of tuple to insert into master data if it does not exsist in database already
         master_game_data = repr((game_info_dict["appid"], game_info_dict["name"], multiplayer, tags))
 
-        change_db('masterData')
         #creates command to insert new games into library
-        command = "INSERT INTO games ( steamID, gameName, multiplayer, tags) VALUES {0}"
+        command = "INSERT INTO masterGamesList ( gameID, gameName, multiplayer, tags) VALUES {0}"
         #executes command
         cursor.execute(command.format(master_game_data))
-
-    change_db(server)
     
     #checks if the member exists
-    command = "CREATE TABLE IF NOT EXISTS `{0}` LIKE `server`.`member`".format(discord_name)
+    command = "CREATE TABLE IF NOT EXISTS `{0}` LIKE template".format(discord_name)
     cursor.execute(command)
 
     #list comprehention to format it to one dimention list
-    searchable_ids = get_game_ids(server, discord_name)
+    searchable_ids = get_game_ids(discord_name)
     #print(master_game_data)
     if not game_info_dict["appid"] in searchable_ids:
         #creates string of tuple to insert into members library if its a new game to them.
@@ -87,8 +75,7 @@ def update_db(server, discord_name, game_info_dict, tags, multiplayer):
     conn.commit()
 
 def profile_update(discord_id, steam_id):
-    change_db('masterData')
-    command = "SELECT discordID FROM members"
+    command = "SELECT discordID FROM masterUsersList"
     cursor.execute(command)
     all_ids = cursor.fetchall()
     all_ids = [id[0] for id in all_ids]
@@ -96,10 +83,10 @@ def profile_update(discord_id, steam_id):
     new_profile = None
     
     if not discord_id in all_ids:
-        command = "INSERT INTO members (discordID, steamID) VALUES (\'{0}\', \'{1}\')".format(discord_id, steam_id)
+        command = "INSERT INTO masterUsersList (discordID, steamID) VALUES (\'{0}\', \'{1}\')".format(discord_id, steam_id)
         new_profile = True
     else:
-        command = "UPDATE members SET steamID=\'{0}\' WHERE discordID=\'{1}\'".format(steam_id, discord_id)
+        command = "UPDATE masterUsersList SET steamID=\'{0}\' WHERE discordID=\'{1}\'".format(steam_id, discord_id)
         new_profile = False
 
     cursor.execute(command)
@@ -137,13 +124,12 @@ def format_details(formatting=None):
                     formatted_details += '\n'
     return formatted_details
 
-def readlib(server, libclass, formatting=None):
-    #select server database
-    change_db(server)
+def readlib(libclass, formatting=None):
     #chose order despending on if the hours formatting option is shown
-    orderby = 'mD.gameName ASC' if (formatting==None or not 'h' in formatting) else 'sD.hours DESC'
+    orderby = 'gameName ASC' if (formatting==None or not 'h' in formatting) else 'hours DESC'
     #get a list of each game in the library and its master data with it 
-    command = "SELECT mD.*, sD.* FROM masterData.games AS mD, `{0}`.`{1}` as sD WHERE mD.steamID = sD.gameID ORDER BY {2}".format(server, libclass.User, orderby)
+    #command = "SELECT mD.*, sD.* FROM masterData.games AS mD, `{0}`.`{1}` as sD WHERE mD.steamID = sD.gameID ORDER BY {2}".format(server, libclass.User, orderby)
+    command = "SELECT * FROM masterGamesList as mD JOIN `{0}` as pD WHERE mD.gameID = pD.gameID ORDER BY {1}".format(libclass.User, orderby)
     cursor.execute(command)
     #get the result
     all_games = cursor.fetchall()
@@ -164,23 +150,25 @@ def readlib(server, libclass, formatting=None):
         libclass.data_array.append(data)
 
 def get_steam_link(member_class):
-    change_db('masterData')
-    command = 'SELECT steamID FROM members WHERE discordID={0}'.format(member_class.id)
+    command = 'SELECT steamID FROM masterUsersList WHERE discordID={0}'.format(member_class.id)
     cursor.execute(command)
     steam_id = cursor.fetchone()[0]
     link = "https://steamcommunity.com/profiles/" + str(steam_id) + "/games/?tab=all"
     return link
 
-def search(server, member, query, called_from):
+def search(member, query, called_from):
     name_matches = []
-    change_db('masterData')
     if query != None:
         if len(query) > 1:
             query = '%' + query
         query = " AND gameName LIKE \"{0}%\"".format(query)
     else:
         query = ""
-    command = 'SELECT * FROM games JOIN `{0}`.`{1}` WHERE gameID=steamID{2} ORDER BY gameName ASC'.format(server, member, query)
+    
+    if called_from == "uninstall":
+        query += " AND pD.downloaded=1"
+    #command = 'SELECT * FROM games JOIN `{0}`.`{1}` WHERE gameID=steamID{2} ORDER BY gameName ASC'.format(server, member, query)
+    command = 'SELECT * FROM masterGamesList as mD JOIN `{0}` as pD WHERE mD.gameID = pD.gameID{1} ORDER BY gameName ASC'.format(member, query)
     cursor.execute(command)
     matches = cursor.fetchall()
 
@@ -190,29 +178,34 @@ def search(server, member, query, called_from):
             name_matches.append([match[1],'Press {0} to mark as downloaded'.format((count%5)+1), match[0]])
         elif called_from == 'uninstall':
             name_matches.append([match[1],'Press {0} to mark as uninstalled'.format((count%5)+1), match[0]])
+        elif called_from == 'search':
+            name_matches.append([match[1],'\u200b'])
         #name_matches.append([match[1],format_details().replace('(d)',downloaded), match[0]])
         
     return name_matches
 
-def mark_as(server, member, game_id, set_as):
-    change_db(server)
+def mark_as(member, game_id, set_as):
     command = "UPDATE `{0}` SET downloaded={1} WHERE gameID={2}".format(member, 1 if set_as else 0, game_id)
     cursor.execute(command)
     conn.commit()
     
-    command = "SELECT gameName, downloaded FROM `masterData`.`games` JOIN `{0}`.`{1}` WHERE steamID = '{2}' AND gameID = '{2}'".format(server, member, game_id)
+    command = "SELECT gameName, downloaded FROM `masterGamesList` as mD JOIN `{0}` as pD WHERE mD.gameID = '{1}' AND pD.gameID = '{1}'".format(member, game_id)
     cursor.execute(command)
     return cursor.fetchone()
 
-def compare(server, members, libclass, format):
-    change_db(server)
+def compare(members, libclass, format):
     additional_tables = ["","",""]
     if len(members) > 2:
         for count in range(2, len(members)):
+            additional_tables[0] += 'JOIN `{0}` as pD{1} '.format(members[count], count)
+            additional_tables[1] += ' AND pD{0}.gameID = pD{1}.gameID'.format(count-1,count)
+            """
             additional_tables[0] += ', pD{0}.*'.format(count)
             additional_tables[1] += ', `{0}`.`{1}` as pD{2}'.format(server, members[count], count)
             additional_tables[2] += ' AND pD{0}.gameID = pD{1}.gameID'.format(count-1,count)
     command = 'SELECT mD.*, pD0.*, pD1.*{3} FROM masterData.games as mD, `{0}`.`{1}` AS pD0, `{0}`.`{2}` as pD1{4} WHERE mD.steamID = pD0.gameID AND pD0.gameID = pD1.gameID{5}'.format(server, members[0], members[1], additional_tables[0], additional_tables[1], additional_tables[2])
+    """
+    command = 'SELECT * FROM masterGamesList as mD JOIN `{0}` as pD0 JOIN `{1}` as pD1 {2}WHERE mD.steamID=pD0.gameID AND pD0.gameID=pD1.gameID{3}'.format(members[0], members[1], additional_tables[0], additional_tables[1], additional_tables[2])
     cursor.execute(command)
     common_games = cursor.fetchall()
 

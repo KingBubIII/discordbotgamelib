@@ -158,7 +158,7 @@ class Library:
         else:
             set_as = None
         
-        marked = db.mark_as(interaction.guild.name, interaction.user.name, gameid, set_as)
+        marked = db.mark_as(interaction.user.name, gameid, set_as)
 
         await interaction.channel.send("{0} has been marked as {1}".format(marked[0], 'downloaded' if marked[1] == 1 else 'uninstalled'))
     
