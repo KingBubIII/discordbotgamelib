@@ -323,7 +323,7 @@ async def search(   ctx: discord.ApplicationContext,
 async def steamid(  ctx: discord.ApplicationContext, 
                     steamid: discord.Option(str, 'Find your Steam ID in your \'Account Details\'', required=True) ):
     #updates mysql database and returns boolean value
-    new_profile = db.profile_update(str(ctx.author.id), steamid)
+    new_profile = db.profile_update(str(ctx.author.id), steamid, ctx.author.name)
     
     #formats correct responce back
     msg = ""

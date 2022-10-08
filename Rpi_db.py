@@ -74,7 +74,7 @@ def update_db(discord_name, game_info_dict, tags, multiplayer):
         
     conn.commit()
 
-def profile_update(discord_id, steam_id):
+def profile_update(discord_id, steam_id, discordName):
     command = "SELECT discordID FROM masterUsersList"
     cursor.execute(command)
     all_ids = cursor.fetchall()
@@ -83,7 +83,7 @@ def profile_update(discord_id, steam_id):
     new_profile = None
     
     if not discord_id in all_ids:
-        command = "INSERT INTO masterUsersList (discordID, steamID) VALUES (\'{0}\', \'{1}\')".format(discord_id, steam_id)
+        command = "INSERT INTO masterUsersList (discordID, steamID, discordName) VALUES (\'{0}\', \'{1}\', \'{2}\')".format(discord_id, steam_id, discordName)
         new_profile = True
     else:
         command = "UPDATE masterUsersList SET steamID=\'{0}\' WHERE discordID=\'{1}\'".format(steam_id, discord_id)
