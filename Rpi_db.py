@@ -37,43 +37,6 @@ def get_all_members():
     membersID_list = [ row[0] for row in cursor.fetchall() ]
     return membersID_list
 
-def update_db(discord_name, game_info_dict, tags, multiplayer):
-
-    #get list of all ids in master data
-    master_game_ids = get_game_ids('masterGamesList')
-    
-    if not game_info_dict["appid"] in master_game_ids:
-        #created string of tuple to insert into master data if it does not exsist in database already
-        master_game_data = repr((game_info_dict["appid"], game_info_dict["name"], multiplayer, tags))
-
-        #creates command to insert new games into library
-        command = "INSERT INTO masterGamesList ( gameID, gameName, multiplayer, tags) VALUES {0}"
-        #executes command
-        cursor.execute(command.format(master_game_data))
-    
-    #checks if the member exists
-    command = "CREATE TABLE IF NOT EXISTS `{0}` LIKE template".format(discord_name)
-    cursor.execute(command)
-
-    #list comprehention to format it to one dimention list
-    searchable_ids = get_game_ids(discord_name)
-    #print(master_game_data)
-    if not game_info_dict["appid"] in searchable_ids:
-        #creates string of tuple to insert into members library if its a new game to them.
-        channel_data = repr((game_info_dict["appid"], float(game_info_dict["hours_forever"].replace(",","")), 0))
-        #print(channel_data)
-
-        #creates command to insert new games into library
-        command = "INSERT INTO `{0}` ( gameID, hours, downloaded) VALUES {1}".format(discord_name, channel_data)
-        #executes command
-        cursor.execute(command)
-    else:
-        command = "UPDATE `{0}` SET hours={1} WHERE gameID={2}".format(discord_name, float(game_info_dict["hours_forever"].replace(',','')), game_info_dict["appid"])
-        #executes command
-        cursor.execute(command)
-        
-    conn.commit()
-
 def profile_update(discord_id, steam_id, discordName):
     command = "SELECT discordID FROM masterUsersList"
     cursor.execute(command)
@@ -82,14 +45,23 @@ def profile_update(discord_id, steam_id, discordName):
 
     new_profile = None
     
+    # if profile does not already exists
     if not discord_id in all_ids:
+        # sql insert command
         command = "INSERT INTO masterUsersList (discordID, steamID, discordName) VALUES (\'{0}\', \'{1}\', \'{2}\')".format(discord_id, steam_id, discordName)
         new_profile = True
+    # if profile does exsist
     else:
+        # sql update command
         command = "UPDATE masterUsersList SET steamID=\'{0}\' WHERE discordID=\'{1}\'".format(steam_id, discord_id)
         new_profile = False
-
     cursor.execute(command)
+
+    # create new table with discord name with same column types of template
+    command = "CREATE TABLE IF NOT EXISTS `{0}` LIKE template".format(discordName)
+    cursor.execute(command)
+
+    # commit changes to database
     conn.commit()
     return new_profile
 

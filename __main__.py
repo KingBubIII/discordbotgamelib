@@ -11,6 +11,7 @@ import random as rd
 import Rpi_db as db
 import itertools
 import time
+import DB_BG_update
 
 # gets token from local file
 # uses linux or windows paths as needed
@@ -341,72 +342,8 @@ async def steamid(  ctx: discord.ApplicationContext,
 @discord_client.slash_command(name = "update_lib", description = "Only my creator can use this command. This will eventually be a background task")
 async def _update_lib(  ctx: discord.ApplicationContext,
                         member: discord.Option(discord.User, 'Mention user who library needs updating', required=True) ):
-    usernames_list = db.get_all_members()
-    # runs if memeber has steam info inputted
-    if str(member.id) in usernames_list:
-        steam_lib_link = db.get_steam_link(member)
-        #opens connection to client website and downloads information
-        uClient = uReq(steam_lib_link)
-
-        # loads html content into variable
-        page_html = uClient.read()
-        # closes connection to client website
-        uClient.close()
-
-        # parse the html document, making soup object
-        page_soup = soup(page_html, "html.parser")
-
-        # getting all game containers list
-        json_script = page_soup.find_all("script",{"language":"javascript"})
-
-        # editing data as a string to be convertable to a dictionary
-        all_game_info = json_script[0].next.split(';')[0]
-        all_game_info = all_game_info[len("  			var rgGames = ["):-1]
-        all_game_info = all_game_info.replace("},{", "},,{")
-        all_game_info = all_game_info.replace('\\','')
-        all_game_info = all_game_info.replace('false','False')
-        all_game_info = all_game_info.replace('true','True')
-        undicted_game_info = list(all_game_info.split(",,"))
-
-        for game in undicted_game_info:
-            # makes dictionary for game to easily access information
-            game_info_dict = ast.literal_eval(game)
-            if 'hours_forever' in game_info_dict:
-                steam_game_link = 'https://store.steampowered.com/app/' + str(game_info_dict['appid'])
-            
-                # opens connection to client website and downloads information
-                uClient = uReq(steam_game_link)
-
-                # loads html content into variable
-                page_html = uClient.read()
-                # closes connection to client website
-                uClient.close()
-
-                # parse the html document, making soup object
-                page_soup = soup(page_html, "html.parser")
-
-                json_script = page_soup.find_all("a", class_="app_tag")
-                tags = []
-                db_multiplayer = False
-                for tag in json_script:
-                    tag = tag.next.replace('\n', '').replace('\r', '').replace('\t', '')
-                    tags.append(tag)
-                    if tag == "Multiplayer":
-                        db_multiplayer = True
-                
-                trademarks = ['u00ae','u2122']
-
-                for trademark in trademarks:
-                    if trademark in game_info_dict['name']:
-                        game_info_dict['name'] = game_info_dict['name'].replace(trademark,chr(int(trademark.replace('u',''), 16)))
-
-                # updates Rpi database
-                db.update_db(member.name, game_info_dict,', '.join(tags), db_multiplayer)
-            # await ctx.respond("```I do not have a Steam ID for you, please go input one with the 'steamid' command```")
-            
-        await ctx.respond("```Your library has been updated```", ephemeral=True)
-    else:
-        await ctx.respond("```Member does not exsist in my database. Use the steamID command to get started```", ephemeral=True)
+    
+    DB_BG_update.update_lib(member.name)
 
 # will give a common game suggestion between all mentioned members
 @discord_client.command()
