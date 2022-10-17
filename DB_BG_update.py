@@ -129,16 +129,12 @@ def update_lib(discordName):
 
 def main():
     # sql command to show all member library tables
-    command = "SHOW TABLES"
+    command = "SELECT discordName FROM masterUsersList"
     cursor.execute(command)
     # return all names
     results = cursor.fetchall()
     # formats into list
     members = [result[0] for result in results]
-    # removes all tables that program uses but users don't see
-    members.remove('masterUsersList')
-    members.remove('masterGamesList')
-    members.remove('template')
     # updates each members library
     for member in members:
         #print(member)
