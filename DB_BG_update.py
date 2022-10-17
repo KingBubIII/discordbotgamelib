@@ -39,6 +39,10 @@ name_lookup = json.loads(response.read())["applist"]["apps"]
 # function to be called both internally and externally
 def update_lib(discordName):
     #start = time.time()
+
+    command = "CREATE TABLE IF NOT EXISTS `{0}` LIKE template".format(discordName)
+    cursor.execute(command)
+
     # get steam ID with discord name lookup
     command = "SELECT steamID FROM masterUsersList WHERE discordName=\'{0}\'".format(discordName)
     cursor.execute(command)
