@@ -124,16 +124,25 @@ def update_lib(discordName):
 
         cursor.execute(command)
         conn.commit()
-
     #print(time.time() - start)
         
 
 def main():
+    # sql command to show all member library tables
     command = "SHOW TABLES"
     cursor.execute(command)
+    # return all names
     results = cursor.fetchall()
-    results = [result[0] for result in results]
-    print(results)
+    # formats into list
+    members = [result[0] for result in results]
+    # removes all tables that program uses but users don't see
+    members.remove('masterUsersList')
+    members.remove('masterGamesList')
+    members.remove('template')
+    # updates each members library
+    for member in members:
+        #print(member)
+        update_lib(member)
 
 if __name__ == "__main__":
     main()
