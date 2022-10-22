@@ -11,69 +11,6 @@ from Bot_Classes import *
 import platform 
 import Rpi_db as db
 
-# class to hold individual game data
-class Game:
-    #declare callable variables
-    def __init__(self, Data : list):
-        self.Owner = str(Data[0])
-        self.FullName = str(Data[1])
-        self.HoursPlayed = str(Data[2])
-        self.SteamID = str(Data[3])
-        self.StorePage = str(Data[4])
-        self.Multiplayer = str(Data[5])
-        self.Downloaded = str(Data[6])
-        self.Nickname = str(Data[7])
-
-    # function to build details specified by the member 
-    def Format_Details(self, formatting):
-        #listing all possible formatting details
-        Possible_formats = ['h','s','o','d','i']
-        #creates a empty string to hold details as they are built
-        formatted_details = ''
-
-        #outdated format option 'nickname
-        ########### needs removal###########
-        if 'n' in formatting:
-            name_type = self.Nickname
-        else:
-            name_type = self.FullName
-
-        #checks all format details one at a time but the first
-        for char in formatting[1::]:
-
-            #check if the format option is a valid one
-            if char in Possible_formats:
-
-                #formats all details if 'a' is selected
-                if char == 'a':
-                    formatted_details += 'Hours: '+self.HoursPlayed+'\n'+'Steam store link: '+self.StorePage+'\n'+'Online: '+self.Multiplayer+'\n'+'Downloaded: '+self.Downloaded
-                    break
-                #other options format their respective details
-                else:
-                    #hour count playing the game
-                    if char == 'h':
-                        formatted_details += 'Hours: ' + self.HoursPlayed
-                    #shows a link to the Steam's game page
-                    if char == 's':
-                        formatted_details += 'Steam store link: ' + self.StorePage
-                    #shows if its multiplayer compatable
-                    if char == 'o':
-                        formatted_details += 'Online: ' + self.Multiplayer
-                    #shows if the mentioned user currently has it downloaded
-                    if char == 'd':
-                        formatted_details += 'Downloaded: ' + self.Downloaded
-                    #for trouble shooting only
-                    #shows games unique ID
-                    if char == 'i':
-                        formatted_details += 'Steam ID: ' + self.SteamID
-                    #adds new line character after each detail is formated for readability
-                    if not char == formatting[-1]:
-                        formatted_details += '\n'
-                #removes the formatted option temporarily so that a double format doesn't occure
-                Possible_formats.remove(char)
-        #returns fully formatted string to add to embed
-        return name_type, formatted_details
-
 # class to hold multiple game info at once
 class Library:
     # add an embed page

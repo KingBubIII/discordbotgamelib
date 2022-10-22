@@ -63,11 +63,11 @@ def update_lib(discordName):
         # checks if game needs can update user's infomation
         if game['appid'] in Rpi_db.get_game_ids(discordName):
             #sql command to update hours
-            command = "UPDATE `{0}` SET hours={1} WHERE gameID={2}".format(discordName, game['playtime_forever']/60, game['appid'])
+            command = "UPDATE `{0}` SET hours={1} WHERE gameID={2}".format(discordName, round(game['playtime_forever']/60, 1), game['appid'])
         # else checks if the game is in the master game lookup table but not in user's table
         elif game['appid'] in Rpi_db.get_game_ids("masterGamesList"):
             # formats data to include "()" for sql reasons
-            new_game_data = repr((game["appid"], float(game["playtime_forever"]/60), 0))
+            new_game_data = repr((game["appid"], round(game["playtime_forever"]/60, 1), 0))
             # create new row for new game in user's table
             command = "INSERT INTO `{0}` ( gameID, hours, downloaded) VALUES {1}".format(discordName, new_game_data)
         # else add to master lookup table
@@ -122,7 +122,7 @@ def update_lib(discordName):
             command = "INSERT INTO masterGamesList ( gameID, gameName, multiplayer, tags) VALUES {0}".format(data_input)
             cursor.execute(command)
             # formats data to include "()" for sql reasons
-            new_game_data = repr((game["appid"], float(game["playtime_forever"]/60), 0))
+            new_game_data = repr((game["appid"], round(game["playtime_forever"]/60, 1), 0))
             # create new row for new game in user's table
             command = "INSERT INTO `{0}` ( gameID, hours, downloaded) VALUES {1}".format(discordName, new_game_data)
 

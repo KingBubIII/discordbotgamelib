@@ -327,14 +327,16 @@ async def steamid(  ctx: discord.ApplicationContext,
     new_profile = db.profile_update(str(ctx.author.id), steamid, ctx.author.name)
     
     #formats correct responce back
-    msg = ""
+    msg = "Please wait for a few minutes for you library to update.```"
     if new_profile:
-        msg = '```New infomation added```'
+        msg = '```New infomation added. ' + msg
     else:
-        msg = '```Your information has been updated```'
+        msg = '```Your information has been updated. ' + msg
 
     #sends message back
     await ctx.respond(msg, ephemeral=True)
+
+    DB_BG_update.update_lib(ctx.author.name)
 
 # a background function to update the database
 # updates hours played per game and adds new games purchased
