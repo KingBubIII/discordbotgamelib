@@ -143,10 +143,6 @@ async def Arg_Assign(all_args):
 # can compare two or more members at a time
 async def compare_func(ctx, formatting, members):
 
-    # creating empty arrays to append data later
-    peoples_libs = []
-    peoples_games = []
-
     Common_lib = Library(User = "Common Games")
     db.compare(members, Common_lib, formatting)
     await create_embeds(Common_lib, members)
@@ -348,29 +344,23 @@ async def _update_lib(  ctx: discord.ApplicationContext,
     DB_BG_update.update_lib(member.name)
 
 # will give a common game suggestion between all mentioned members
-@discord_client.command()
-async def random(ctx, *members):
+@discord_client.slash_command(name = "random", description = "Get a random game that all mentioned users own.")
+async def random(   ctx: discord.ApplicationContext, 
+                    members: discord.Option( str, description="Mention multiple people in here", required=True),
+                    downloaded: discord.Option(str, 'Searches only games that are downloaded for all parties', required=False, choices=["Yes", "No"], default = "Yes")):
+    
+    members = members.split(" ")
+    members = [ await get_user_class(member) for member in members if "<@" in member]
+    members = [ member.name for member in members]
+    
     # get a result class
-    result = await compare_func('-d', members)
-
-    # empty list init
-    common_downloaded = []
-
-    # iterate through list one game at a time
-    for item in result.data_array:
-        #checks if both people have the game downloaded
-        if 'Yes\n'*len(members) == item[1].replace('Downloaded: ', ''):
-            # add to temporary list to choose from later
-            common_downloaded.append(item)
+    results = db.get_master_and_member_game_data(members, True)
+    results = [game_name[1] for game_name in results]
     
     # select random element in the list, therefore random game
-    random_game = rd.choice(common_downloaded)
-    # create new embed variable
-    single_embed = discord.Embed(title = "Random Game", description = 'Choices are from only downloaded games' , color = discord.Color.blue())
-    # add field with chosen game name
-    single_embed.add_field(name = 'Random Game: ', value = random_game[0] , inline=False)
+    random_game = rd.choice(results)
     # send chosen game embed
-    await ctx.respond(embed=single_embed)
+    await ctx.respond("```{0}```".format(random_game))
 
 @discord_client.slash_command(name = "uninstall", description = "Allows you to write to the database to remove what games are displayed that you can play")
 async def uninstall(    ctx: discord.ApplicationContext, 
