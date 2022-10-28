@@ -197,3 +197,17 @@ def compare(members, libclass, format):
         data = [game[1],all_member_details]
         #add game and the details that have been formatted to library class data
         libclass.data_array.append(data)
+
+def channel_info(channel_name=None):
+    command = "SELECT * FROM Channel_Tiers{0}".format("" if channel_name is None else " WHERE ChannelName=`{0}`".format(channel_name))
+    cursor.execute(command)
+
+    if not channel_name is None:
+        return cursor.fetchone()
+    else:
+        return cursor.fetchall()
+
+def add_channel(channel_name):
+    command = "INSERT INTO Channel_Tiers (ChannelName, Tier) VALUES (\"{0}\", 0)".format(channel_name)
+    cursor.execute(command)
+    conn.commit()

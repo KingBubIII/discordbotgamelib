@@ -5,6 +5,7 @@ from discord.ui import Button, View
 from urllib.request import urlopen as uReq
 import ast
 from bs4 import BeautifulSoup as soup
+from matplotlib.backend_bases import cursors
 from Bot_Classes import *
 import platform
 import random as rd
@@ -319,6 +320,12 @@ async def search(   ctx: discord.ApplicationContext,
 @discord_client.slash_command(name = "steamid", description = "This is basically your profile in my database")
 async def steamid(  ctx: discord.ApplicationContext, 
                     steamid: discord.Option(str, 'Find your Steam ID in your \'Account Details\'', required=True) ):
+
+    channels = [channel[1] for channel in db.channel_info()]
+
+    if not ctx.guild.name in channels:
+        db.add_channel(ctx.guild.name)
+
     #updates mysql database and returns boolean value
     new_profile = db.profile_update(str(ctx.author.id), steamid, ctx.author.name)
     
