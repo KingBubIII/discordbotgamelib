@@ -145,4 +145,12 @@ def main():
         update_lib(member)
 
 if __name__ == "__main__":
-    main()
+    myfile = open("unorganized_values.txt", "w")
+    
+    try:
+        main()
+    except Exception as e:
+        myfile.write(e)
+    finally:
+        myfile.write("Completed")
+

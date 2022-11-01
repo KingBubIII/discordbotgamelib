@@ -199,12 +199,12 @@ async def echo(ctx, msg: str = 'echo'):
 # you can specify commands to get in-depth help on them
 @discord_client.slash_command(name = "help", description = "shows the list of avaible commands with a few examples")
 async def help( ctx: discord.ApplicationContext, 
-                command: discord.Option(str, 'Specify a command name to get more in depth help', required=False) = None):
+                command: discord.Option(str, 'Specify a command name to get more in depth help and examples', required=False, choices=["compare","download","random","readlib","search","steamid","uninstall"]) = None):
     
     helpEmbed = discord.Embed(title = 'basic bitch', color = discord.Color.orange())
 
     if command == None:
-        helpEmbed.title = 'List of short command descriptions'
+        helpEmbed.title = 'List of short command descriptions. Specify a command to get examples.'
         helpEmbed.add_field(name = 'compare', value = 'Shows common games between all mentioned people in pagified version like reading a library', inline=False)
         helpEmbed.add_field(name = 'download', value = 'Page through library to select what games are downloaded locally on your pc', inline=False)
         helpEmbed.add_field(name = 'echo', value = 'Repeats what you say in a fancy code block', inline=False)
@@ -213,17 +213,16 @@ async def help( ctx: discord.ApplicationContext,
         helpEmbed.add_field(name = 'steamid', value = 'Either creates new profile for you in my database or updates your exsisting profile', inline=False)
         # helpEmbed.add_field(name = 'download', value = '', inline=False)
 
-
     elif command == 'echo':
         helpEmbed.title = 'In depth help for'
         helpEmbed.add_field(name = command, value = 'Repeats what you say in a fancy code block\n\n\
                                                         Optional command(s): message\n\n\
                                                         Default message to \'echo\'\n\n\
                                                         The arguement can be as long as you want including spaces\n\n \
-                                                        Default Example: >>echo\nDefault Ouptut: echo\n\n\
-                                                        Filled argument Example: >>echo This command is useless \n\
+                                                        Default Example: /echo\nDefault Ouptut: echo\n\n\
+                                                        Filled argument Example: /echo This command is useless \n\
                                                         Filled arguement Output: This command is useless')
-        helpEmbed.add_field(name = 'Examples', value = '>>echo testing testing')
+        helpEmbed.add_field(name = 'Examples', value = '/echo testing testing')
 
     elif command == 'readlib':
         helpEmbed.title = 'In depth help for'
@@ -238,20 +237,19 @@ async def help( ctx: discord.ApplicationContext,
                                                         \'t\' (Tags): Shows all the tags Steam has associated with it')
         
 
-        helpEmbed.add_field(name = 'Examples', value = '>>readlib @KingBubIII\n\n\
-                                                        >>readlib @KingBubIII -a\n\n\
-                                                        >>readlib @KingBubIII -hd\n\n\
-                                                        >>readlib @KingBubIII -dhos\n\n')
+        helpEmbed.add_field(name = 'Examples', value = '/readlib @KingBubIII\n\n\
+                                                        /readlib @KingBubIII -a\n\n\
+                                                        /readlib @KingBubIII -hd\n\n\
+                                                        /readlib @KingBubIII -dhos\n\n')
 
     elif command == 'compare':
         helpEmbed.title = 'In depth help for'
-        helpEmbed.add_field(name = command, value = 'See all games each mentioned person has in common\n\
-                                                        Can also show details using the details option of readlib')
-        helpEmbed.add_field(name = 'Examples', value = '>>compare @KingBubIII @Test123\n\n\
-                                                        >>compare @KingBubIII   @Test123 -d\n\
-                                                        Shows common games that are downloaded\n\n\
-                                                        >>compare @KingBubIII @Test123 -hso\n\
-                                                        Shows common games while showing hours, Steam link, and if its multiplayer for each player')
+        helpEmbed.add_field(name = command, value =     'See all games each mentioned person has in common with the others\n\n\
+                                                        Can also show details on the games just like the "/readlib" command but is not required\n\n\
+                                                        You need to mention at least 2 people that have run the "/steamid" command\n\n\
+                                                        You can mention more than 2 people but reccommended maximum is 4 users at a time otherwise embed with be too big\n\n')
+        helpEmbed.add_field(name = 'Examples', value = '/compare members:@member1 @member2 formatting:dh\n\n\
+                                                        /compare members:@member1 @member2 @member3\n\n')
 
     elif command == 'download':
         helpEmbed.title = 'In depth help for'
@@ -259,7 +257,7 @@ async def help( ctx: discord.ApplicationContext,
                                                         The output is the same as a readlib command but with numbered reaction options\n\n\
                                                         Reacting with a numbered reaction will mark that game on the current page as downloaded\n\n\
                                                         You are the only one that can mark games as downloaded in your library\n\n')
-        helpEmbed.add_field(name = 'Examples', value = '>>download')
+        helpEmbed.add_field(name = 'Examples', value = '/download')
 
     elif command == 'steamid':
         helpEmbed.title = 'In depth help for'
@@ -267,17 +265,19 @@ async def help( ctx: discord.ApplicationContext,
                                                             If you\'re new, I\'ll create a new profile in my database and add your ID.\n\n\
                                                             Your steam ID directs me to your Steam profile.\n\n\
                                                             Make sure you set your acount to public though!')
-        helpEmbed.add_field(name = 'Examples', value = '>>steamid 76561198286078396\n\n\
-                                                        >>steamid 12345678912345678')
+        helpEmbed.add_field(name = 'Examples', value = '/steamid 76561198286078396\n\n\
+                                                        /steamid 12345678912345678')
 
     elif command == 'search':
         helpEmbed.title = 'In depth help for'
         helpEmbed.add_field(name = command, value = 'Just a basic search function\n\n\
                                                         The default library to search if you don\'t mention a person is your own\n\n\
                                                         Be as specific or as general as you would like\n\n\
-                                                        Can only search one person\'s library at a time\n\n')
-        helpEmbed.add_field(name = 'Examples', value = '>>search ba @KingBubIII\n\n\
-                                                        >>search ba')
+                                                        Can only search one person\'s library at a time\n\n\
+                                                        Searching a single letter will show game names that start with that letter.\n\n\
+                                                        While a multiple letter search will just look for the sequence in the game name.')
+        helpEmbed.add_field(name = 'Examples', value = '/search member:@member query:blo\n\n\
+                                                        /search query:h')
 
     # elif command == '':
         # helpEmbed.title = 'In depth help for'
