@@ -3,15 +3,11 @@ import discord
 from discord.ext import commands
 from discord.ui import Button, View
 from urllib.request import urlopen as uReq
-import ast
 from bs4 import BeautifulSoup as soup
-from matplotlib.backend_bases import cursors
 from Bot_Classes import *
 import platform
 import random as rd
 import Rpi_db as db
-import itertools
-import time
 import DB_BG_update
 
 # gets token from local file
@@ -253,11 +249,15 @@ async def help( ctx: discord.ApplicationContext,
 
     elif command == 'download':
         helpEmbed.title = 'In depth help for'
-        helpEmbed.add_field(name = command, value = 'This function allows you to mark games as downloaded in my database\n\n\
+        helpEmbed.add_field(name = command, value =     'Sorry but I can\'t tell what games you have installed for security reasons.\
+                                                        This function allows you to mark games as downloaded in my database\n\n\
                                                         The output is the same as a readlib command but with numbered reaction options\n\n\
-                                                        Reacting with a numbered reaction will mark that game on the current page as downloaded\n\n\
-                                                        You are the only one that can mark games as downloaded in your library\n\n')
-        helpEmbed.add_field(name = 'Examples', value = '/download')
+                                                        Pressing a numbered button will mark that game on the current page with that number as downloaded\n\n\
+                                                        You are the only one that can mark games as downloaded in your library\n\n\
+                                                        You can also enter a search term like the "/search" command if your looking for a specific game')
+        helpEmbed.add_field(name = 'Examples', value = '/download\n\n\
+                                                        /download search_query:blo\n\n\
+                                                        /download search_query:T')
 
     elif command == 'steamid':
         helpEmbed.title = 'In depth help for'

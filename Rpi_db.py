@@ -159,7 +159,10 @@ def search(member, query, called_from):
     for count, match in enumerate(matches):
         #downloaded = 'Yes' if match[6] else 'No'
         if called_from == 'download':
-            name_matches.append([match[1],'Press {0} to mark as downloaded'.format((count%5)+1), match[0]])
+            if match[6]:
+                name_matches.append([match[1],'Downloaded: Yes'])
+            else:
+                name_matches.append([match[1],'Press {0} to mark as downloaded'.format((count%5)+1), match[0]])
         elif called_from == 'uninstall':
             name_matches.append([match[1],'Press {0} to mark as uninstalled'.format((count%5)+1), match[0]])
         elif called_from == 'search':

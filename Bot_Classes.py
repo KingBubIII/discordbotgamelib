@@ -1,14 +1,9 @@
 import discord
-from discord.ext import commands
 from discord.ui import Button, View
-import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from urllib.request import urlopen as uReq
-import asyncio
-import ast
 from bs4 import BeautifulSoup as soup
 from Bot_Classes import *
-import platform 
 import Rpi_db as db
 
 # class to hold multiple game info at once
@@ -86,8 +81,10 @@ class Library:
 
     async def MARK_AS(self, interaction):
         button = discord.utils.get(self.view.children, custom_id=interaction.custom_id)
+        page_index = self.NumReacts.index(button.emoji.name)
+        array_index = (self.PageNumber*self.MaxGamesOnPage) + page_index
         
-        gameid = self.data_array[(self.PageNumber*self.MaxGamesOnPage) + self.NumReacts.index(button.emoji.name)][2]
+        gameid = self.data_array[array_index][2]
         if self.called_from == 'download':
             set_as = True
         elif self.called_from == 'uninstall':
@@ -97,7 +94,11 @@ class Library:
         
         marked = db.mark_as(interaction.user.name, gameid, set_as)
 
-        await interaction.channel.send("{0} has been marked as {1}".format(marked[0], 'downloaded' if marked[1] == 1 else 'uninstalled'))
+        change = 'Downloaded: Yes' if set_as else "Uninstalled: Yes"
+        self.data_array[array_index][1] = change
+        self.Embeds[self.PageNumber].fields[page_index].value = change
+        await interaction.response.edit_message(embed=self.CurrentPage(), view=await self.getView())
+        #await interaction.channel.send("{0} has been marked as {1}".format(marked[0], 'downloaded' if marked[1] == 1 else 'uninstalled'))
     
     # init class variable
     def __init__(self, User=None, data=None, called_from=None):
