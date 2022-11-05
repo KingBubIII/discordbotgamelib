@@ -39,7 +39,7 @@ name_lookup = json.loads(response.read())["applist"]["apps"]
 # function to be called both internally and externally
 def update_lib(discordName):
     #start = time.time()
-
+    print(discordName)
     command = "CREATE TABLE IF NOT EXISTS `{0}` LIKE template".format(discordName)
     cursor.execute(command)
 
