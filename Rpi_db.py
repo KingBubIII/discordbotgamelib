@@ -164,7 +164,10 @@ def search(member, query, called_from):
             else:
                 name_matches.append([match[1],'Press {0} to mark as downloaded'.format((count%5)+1), match[0]])
         elif called_from == 'uninstall':
-            name_matches.append([match[1],'Press {0} to mark as uninstalled'.format((count%5)+1), match[0]])
+            if not match[6]:
+                name_matches.append([match[1],'Downloaded: No'])
+            else:
+                name_matches.append([match[1],'Press {0} to mark as uninstalled'.format((count%5)+1), match[0]])
         elif called_from == 'search':
             name_matches.append([match[1],'\u200b'])
         #name_matches.append([match[1],format_details().replace('(d)',downloaded), match[0]])
