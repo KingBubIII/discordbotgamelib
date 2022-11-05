@@ -49,7 +49,7 @@ def update_lib(discordName):
     steamID = cursor.fetchone()[0]
 
     # formats the URL
-    all_games_url = basicURL.format(steamKey.split(), steamID)
+    all_games_url = basicURL.format(steamKey.strip(), steamID)
 
     # store the response of URL open
     response = urlopen(all_games_url)
