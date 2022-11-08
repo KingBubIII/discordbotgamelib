@@ -151,6 +151,8 @@ def search(member, query, called_from):
     
     if called_from == "uninstall":
         query += " AND pD.downloaded=1"
+    elif called_from == "download":
+        query += " AND pD.downloaded=0"
     #command = 'SELECT * FROM games JOIN `{0}`.`{1}` WHERE gameID=steamID{2} ORDER BY gameName ASC'.format(server, member, query)
     command = 'SELECT * FROM masterGamesList as mD JOIN `{0}` as pD WHERE mD.gameID = pD.gameID{1} ORDER BY gameName ASC'.format(member, query)
     cursor.execute(command)

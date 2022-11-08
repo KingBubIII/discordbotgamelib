@@ -321,6 +321,10 @@ async def search(   ctx: discord.ApplicationContext,
 async def steamid(  ctx: discord.ApplicationContext, 
                     steamid: discord.Option(str, 'Find your Steam ID in your \'Account Details\'', required=True) ):
 
+    if not steamid.isnumeric():
+        await ctx.respond("`You did not enter a string of numbers. Double check that it is a 17 numbers and removing extra spaces.`", ephemeral=True)
+        return
+
     channels = [channel[1] for channel in db.channel_info()]
 
     if not ctx.guild.name in channels:
