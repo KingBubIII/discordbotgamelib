@@ -162,10 +162,14 @@ async def compare(  ctx: discord.ApplicationContext,
                     formatting: discord.Option( str, description="formatting options exactly like readlib command", required=False)):
 
     real_members = []
-    for item in members.split(" "):
+    for item in members.replace("><@", "> <@").split(" "):
         if "<@" in item:
             temp_user = await get_user_class(item)
             real_members.append(temp_user.name)
+
+    if len(real_members) < 2:
+        await ctx.respond("`Not enough users mentioned to compare, enter 2-4 members`")
+        return
 
     Common_lib = await compare_func(ctx, formatting, real_members)
 
@@ -291,8 +295,11 @@ async def help( ctx: discord.ApplicationContext,
 # @discord_client.command()
 @discord_client.slash_command(name = "readlib", description = "Read a specific person's library by mentioning them")
 async def readlib(  ctx: discord.ApplicationContext, 
-                    member: discord.Option(discord.Member, 'Mention only one person', required=True),
+                    member: discord.Option(discord.Member, 'Mention only one person', required=False),
                     details: discord.Option(str, 'You can use any number and combination of ', required=False)):
+
+    if member is None:
+        member = ctx.author
 
     # creates library for user
     UsersLibrary = Library(User=member.name)
@@ -309,8 +316,11 @@ async def readlib(  ctx: discord.ApplicationContext,
 #@discord_client.command()
 @discord_client.slash_command(name = "search", description = "Search's a mentioned users library with your query")
 async def search(   ctx: discord.ApplicationContext,
-                    member: discord.Option(discord.Member, 'Mention only one person', required=True),
-                    query: discord.Option(str, 'search a term or the starting letter', required=True) ):
+                    query: discord.Option(str, 'search a term or the starting letter', required=True),
+                    member: discord.Option(discord.Member, 'Mention only one person', required=False) ):
+
+    if member is None:
+        member = ctx.author
 
     #runs search command without being intention to change database values 
     response_lib = await Search_func(ctx, query, member, 'search')
@@ -357,12 +367,14 @@ async def _update_lib(  ctx: discord.ApplicationContext,
 # will give a common game suggestion between all mentioned members
 @discord_client.slash_command(name = "random", description = "Get a random game that all mentioned users own.")
 async def random(   ctx: discord.ApplicationContext, 
-                    members: discord.Option( str, description="Mention multiple people in here", required=True),
+                    members: discord.Option( str, description="Mention multiple people in here", required=False),
                     downloaded: discord.Option(str, 'Searches only games that are downloaded for all parties', required=False, choices=["Yes", "No"], default = "Yes")):
-    
-    members = members.split(" ")
-    members = [ await get_user_class(member) for member in members if "<@" in member]
-    members = [ member.name for member in members]
+    if members is None:
+        members = [ctx.author.name]
+    else:
+        members = members.split(" ")
+        members = [ await get_user_class(member) for member in members if "<@" in member]
+        members = [ member.name for member in members]
     
     # get a result class
     results = db.get_master_and_member_game_data(members, True)
@@ -371,7 +383,7 @@ async def random(   ctx: discord.ApplicationContext,
     # select random element in the list, therefore random game
     random_game = rd.choice(results)
     # send chosen game embed
-    await ctx.respond("```{0}```".format(random_game))
+    await ctx.respond("```{0}```".format(random_game),ephemeral=True if len(members)==1 else False)
 
 @discord_client.slash_command(name = "uninstall", description = "Allows you to write to the database to remove what games are displayed that you can play")
 async def uninstall(    ctx: discord.ApplicationContext, 

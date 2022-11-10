@@ -39,13 +39,14 @@ def get_all_members():
 
 def get_master_and_member_game_data(members, downloaded_only):
     additional_tables = ["","",""]
-    if len(members) > 2:
+    if len(members) >= 2:
         for count in range(2, len(members)):
             additional_tables[0] += 'JOIN `{0}` as pD{1} '.format(members[count], count)
             additional_tables[1] += ' AND pD{0}.gameID = pD{1}.gameID'.format(count-1,count)
             additional_tables[2] += ' AND pD{0}.downloaded = True AND pD{0}.downloaded = True'.format(count-1,count)
-            
-    command = 'SELECT * FROM masterGamesList as mD JOIN `{0}` as pD0 JOIN `{1}` as pD1 {2}WHERE mD.gameID=pD0.gameID AND pD0.gameID=pD1.gameID{3}{4}{5}'.format(members[0], members[1], additional_tables[0], additional_tables[1], " AND pD0.downloaded = True AND pD1.downloaded = True" if downloaded_only else "", additional_tables[2] if downloaded_only else "")
+        command = 'SELECT * FROM masterGamesList as mD JOIN `{0}` as pD0 JOIN `{1}` as pD1 {2}WHERE mD.gameID=pD0.gameID AND pD0.gameID=pD1.gameID{3}{4}{5}'.format(members[0], members[1], additional_tables[0], additional_tables[1], " AND pD0.downloaded = True AND pD1.downloaded = True" if downloaded_only else "", additional_tables[2] if downloaded_only else "")
+    else:
+        command = 'SELECT * FROM masterGamesList as mD JOIN `{0}` as pD0 {1}WHERE mD.gameID=pD0.gameID{2}{3}{4}'.format(members[0], additional_tables[0], additional_tables[1], " AND pD0.downloaded = True " if downloaded_only else "", additional_tables[2] if downloaded_only else "")
     cursor.execute(command)
     return cursor.fetchall()
 
