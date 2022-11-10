@@ -372,7 +372,7 @@ async def random(   ctx: discord.ApplicationContext,
     if members is None:
         members = [ctx.author.name]
     else:
-        members = members.split(" ")
+        members = members.replace("><@", "> <@").split(" ")
         members = [ await get_user_class(member) for member in members if "<@" in member]
         members = [ member.name for member in members]
     
