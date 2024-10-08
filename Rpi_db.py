@@ -1,16 +1,16 @@
-import pymysql
+import sqlite3
 import platform
 import time
 
 # gets all host connection info from local file
 # uses linux or windows paths as needed
-username, mypass, host_address = [line.strip() for line in open(('/home/kingbubiii/Documents/discordbotgamelib/' if platform.system() == 'Linux' else '') + 'mysql_login.txt').readlines()]
+# username, mypass, host_address = [line.strip() for line in open(('/home/kingbubiii/Documents/discordbotgamelib/' if platform.system() == 'Linux' else '') + 'mysql_login.txt').readlines()]
 
 #connects to database using username and password
-conn = pymysql.connect(user=username, password=mypass, host=host_address)
+conn = sqlite3.connect('db.sqlite3')
 #cursor allows for commands to be run and collects outputs
 cursor = conn.cursor()
-cursor.execute('USE discord_data')
+# cursor.execute('USE discord_data')
 
 def show_table(db_name, tbl_name):
     #view all data in member table
@@ -57,7 +57,7 @@ def profile_update(discord_id, steam_id, discordName):
     all_ids = [id[0] for id in all_ids]
 
     new_profile = None
-    
+
     # if profile does not already exists
     if not discord_id in all_ids:
         # sql insert command
@@ -70,9 +70,14 @@ def profile_update(discord_id, steam_id, discordName):
         new_profile = False
     cursor.execute(command)
 
-    # create new table with discord name with same column types of template
-    command = "CREATE TABLE IF NOT EXISTS `{0}` LIKE template".format(discordName)
+    command = "SELECT name FROM sqlite_master WHERE type='table' AND name='{0}';".format(discordName)
     cursor.execute(command)
+    table_exists = cursor.fetchone()
+
+    if not table_exists:
+        # create new table with discord name with same column types of template
+        command = "CREATE TABLE {0} AS SELECT * FROM template WHERE 0".format(discordName)
+        cursor.execute(command)
 
     # commit changes to database
     conn.commit()
@@ -112,7 +117,7 @@ def format_details(formatting=None):
 def readlib(libclass, formatting=None):
     #chose order despending on if the hours formatting option is shown
     orderby = 'gameName ASC' if (formatting==None or not 'h' in formatting) else 'hours DESC'
-    #get a list of each game in the library and its master data with it 
+    #get a list of each game in the library and its master data with it
     #command = "SELECT mD.*, sD.* FROM masterData.games AS mD, `{0}`.`{1}` as sD WHERE mD.steamID = sD.gameID ORDER BY {2}".format(server, libclass.User, orderby)
     command = "SELECT * FROM masterGamesList as mD JOIN `{0}` as pD WHERE mD.gameID = pD.gameID ORDER BY {1}".format(libclass.User, orderby)
     cursor.execute(command)
@@ -128,7 +133,7 @@ def readlib(libclass, formatting=None):
         tags = game[3]
         formatted_details = format_details(formatting)
         formatted_details = formatted_details.replace('(d)',downloaded).replace('(h)',hours).replace('(o)',multiplayer).replace('(t)',tags)
-        
+
         #temperary array
         data = [game[1],formatted_details]
         #add game and the details that have been formatted to library class data
@@ -149,7 +154,7 @@ def search(member, query, called_from):
         query = " AND gameName LIKE \"{0}%\"".format(query)
     else:
         query = ""
-    
+
     if called_from == "uninstall":
         query += " AND pD.downloaded=1"
     elif called_from == "download":
@@ -174,14 +179,14 @@ def search(member, query, called_from):
         elif called_from == 'search':
             name_matches.append([match[1],'\u200b'])
         #name_matches.append([match[1],format_details().replace('(d)',downloaded), match[0]])
-        
+
     return name_matches
 
 def mark_as(member, game_id, set_as):
     command = "UPDATE `{0}` SET downloaded={1} WHERE gameID={2}".format(member, 1 if set_as else 0, game_id)
     cursor.execute(command)
     conn.commit()
-    
+
     command = "SELECT gameName, downloaded FROM `masterGamesList` as mD JOIN `{0}` as pD WHERE mD.gameID = '{1}' AND pD.gameID = '{1}'".format(member, game_id)
     cursor.execute(command)
     return cursor.fetchone()

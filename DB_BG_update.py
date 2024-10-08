@@ -2,7 +2,7 @@ from unicodedata import name
 import discord
 from discord.ext import commands
 from discord.ui import Button, View
-import pymysql
+import sqlite3
 import steam.steamid as s
 from urllib.request import urlopen
 import json
@@ -15,14 +15,14 @@ import time
 # http://api.steampowered.com/<interface name>/<method name>/v<version>/?key=<api key>&format=<format>
 
 # Rpi database connection information
-username, mypass, host_address = [line.strip() for line in open(('/home/kingbubiii/Documents/discordbotgamelib/' if platform.system() == 'Linux' else '') + 'mysql_login.txt').readlines()]
+# username, mypass, host_address = [line.strip() for line in open(('/home/kingbubiii/Documents/discordbotgamelib/' if platform.system() == 'Linux' else '') + 'mysql_login.txt').readlines()]
 
 # connects to database using username and password
-conn = pymysql.connect(user=username, password=mypass, host=host_address)
+conn = sqlite3.connect('db.sqlite3')
 # cursor allows for commands to be run and collects outputs
 cursor = conn.cursor()
 # select main database
-cursor.execute('USE discord_data')
+# cursor.execute('USE discord_data')
 
 # read steam key from for API access
 steamKey = open(('/home/kingbubiii/Documents/discordbotgamelib/' if platform.system() == 'Linux' else '') + 'steam_key.txt').readline()
@@ -33,15 +33,21 @@ basicURL = "http://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?key=
 # store the response of URL open
 response = urlopen("http://api.steampowered.com/ISteamApps/GetAppList/v0002/")
 
-# storing the JSON response 
+# storing the JSON response
 name_lookup = json.loads(response.read())["applist"]["apps"]
 
 # function to be called both internally and externally
 def update_lib(discordName):
     #start = time.time()
     print(discordName)
-    command = "CREATE TABLE IF NOT EXISTS `{0}` LIKE template".format(discordName)
+    command = "SELECT name FROM sqlite_master WHERE type='table' AND name='{0}';".format(discordName)
     cursor.execute(command)
+    table_exists = cursor.fetchone()
+
+    if not table_exists:
+        # create new table with discord name with same column types of template
+        command = "CREATE TABLE {0} AS SELECT * FROM template WHERE 0".format(discordName)
+        cursor.execute(command)
 
     # get steam ID with discord name lookup
     command = "SELECT steamID FROM masterUsersList WHERE discordName=\'{0}\'".format(discordName)
@@ -54,12 +60,12 @@ def update_lib(discordName):
     # store the response of URL open
     response = urlopen(all_games_url)
 
-    # storing the JSON response 
+    # storing the JSON response
     data_json = json.loads(response.read())
 
     # looping through each game
     for game in data_json['response']['games']:
-        
+
         # checks if game needs can update user's infomation
         if game['appid'] in Rpi_db.get_game_ids(discordName):
             #sql command to update hours
@@ -73,7 +79,7 @@ def update_lib(discordName):
         # else add to master lookup table
         else:
             steam_game_link = 'https://store.steampowered.com/app/' + str(game['appid'])
-            
+
             # opens connection to client website and downloads information
             uClient = uReq(steam_game_link)
 
@@ -95,7 +101,7 @@ def update_lib(discordName):
                 tag = tag.next.strip()
                 # adds tag to list
                 tags.append(tag)
-                # checks if multiplayer 
+                # checks if multiplayer
                 if tag == "Multiplayer":
                     db_multiplayer = True
 
@@ -104,7 +110,7 @@ def update_lib(discordName):
                 if item["appid"] == game["appid"]:
                     gameName = item["name"]
 
-            
+
             # list of trademarks that become weird strings after webscrapping
             trademarks = ['u00ae','u2122']
 
@@ -129,7 +135,7 @@ def update_lib(discordName):
         cursor.execute(command)
         conn.commit()
     #print(time.time() - start)
-        
+
 
 def main():
     # sql command to show all member library tables
@@ -146,7 +152,7 @@ def main():
 
 if __name__ == "__main__":
     myfile = open("unorganized_values.txt", "w")
-    
+
     try:
         main()
     except Exception as e:

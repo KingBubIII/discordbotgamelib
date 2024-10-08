@@ -15,11 +15,12 @@ import DB_BG_update
 TOKEN = open(('/home/kingbubiii/Documents/discordbotgamelib/' if platform.system() == 'Linux' else '') + 'token.txt').read()
 # print(TOKEN)
 
-# creating client instance and identifying prefix for commands 
+# creating client instance and identifying prefix for commands
 intents = discord.Intents.default()
+intents.message_content = True
 intents.members = True
 
-discord_client = commands.Bot(intents=intents)
+discord_client = commands.Bot(command_prefix='>>', intents=intents)
 discord_client.remove_command('help')
 
 # allows users to search libraries, their own or others, for game names
@@ -29,7 +30,7 @@ async def Search_func(ctx, search_query, member, called_from):
     if len(results_data) == 0:
         await ctx.respond('```I found no matches```')
         return False
-    #creates a new library from results list 
+    #creates a new library from results list
     results_lib = Library(User="results", data=results_data, called_from=called_from)
     #creates embed from result class
     await create_embeds(results_lib, None)
@@ -40,21 +41,21 @@ async def Search_func(ctx, search_query, member, called_from):
 async def create_embeds(libclass, members):
     # loops through each common game
     for count, game in enumerate(libclass.data_array):
-        # if only one library is being read 
+        # if only one library is being read
         if type(libclass.data_array[0][1]) == str:
             # adds a field per game to the embed with the formatting options
             libclass.Page.add_field(name=game[0], value=game[1], inline=False)
-        
+
         # if details of multiple users are being outputed
         elif type(libclass.data_array[0][1]) == list:
             # empty string to be added to as needed
             formatted = ""
             #the number of details specified
             details_len = len(game[1][0].split('\n'))
-            
+
             # loops through all members 2 at a time
             for index in range(0,len(members), 2):
-                # allows for an odd person that will no be grouped with someone else 
+                # allows for an odd person that will no be grouped with someone else
                 grouped_people = 1 if index+1 == len(members) else 2
 
                 """
@@ -66,7 +67,7 @@ async def create_embeds(libclass, members):
 
                 # loops though the grouped members
                 for shift in range(grouped_people):
-                    # will bold member name 
+                    # will bold member name
                     temp_str = '**' + members[index+shift] + '**'
                     # centers the name in zero width characters
                     temp_str = temp_str.center(32+4, '\u200b')
@@ -74,7 +75,7 @@ async def create_embeds(libclass, members):
                     temp_str = temp_str.replace('\u200b',' \u200b')
                     # adds string to final result
                     formatted += temp_str
-                
+
                 # sperates the member names from the details with a newline
                 formatted += '\n\u200b'
 
@@ -82,7 +83,7 @@ async def create_embeds(libclass, members):
                 for i in range(details_len):
                     # does this for each grouped member
                     for shift in range(grouped_people):
-                        # grabs the detail 
+                        # grabs the detail
                         temp_str = game[1][index+shift].split('\n')[i]
                         # centers the game detail to line up with the member name
                         temp_str = temp_str.center(32+4, '\u200b')
@@ -96,7 +97,7 @@ async def create_embeds(libclass, members):
 
             #print(len(formatted))
             libclass.Page.add_field(name=game[0], value=formatted, inline=False)
-        
+
         # checks to make sure there is only 5 games per page of the library so it doesnt get overwhelming and the embed cant hold the whole library
         if (((count+1)%libclass.MaxGamesOnPage) == 0 and count > 0) or count - len(libclass.data_array) == 0:
             libclass.AddPage()
@@ -111,7 +112,7 @@ async def Arg_Assign(all_args):
     # filters down entire list of arguments down to ones with member character tags '<@!'
     # converts from tuple to list
     members = list(filter(lambda arg: "<@" in arg , all_args))
-    
+
     # checks if there is a format choice or not
     # if no
     if len(members) == len(all_args):
@@ -127,7 +128,7 @@ async def Arg_Assign(all_args):
             misc.remove(member)
         #format becomes string from list
         misc = misc[0]
-    
+
     # if only one member is mentioned, convert it to a string instead of leaving it in an array
     if len(members) == 1:
         members = members[0]
@@ -177,7 +178,7 @@ async def compare(  ctx: discord.ApplicationContext,
 
 # member command to update database games as downloaded
 @discord_client.slash_command(name = "download", description = "Allows you to write to the database to display what game you can play")
-async def download( ctx: discord.ApplicationContext, 
+async def download( ctx: discord.ApplicationContext,
                     search_query: discord.Option( str, description="Use this just like the search command", required=False) = None):
     #calls search command with 'Download' perameter
     results_lib = await Search_func(ctx, search_query, ctx.author, called_from='download')
@@ -185,8 +186,8 @@ async def download( ctx: discord.ApplicationContext,
     await ctx.respond(embed=results_lib.CurrentPage(), view = await results_lib.getView(), ephemeral=True)
 
 # A simple command that repeats what was sent
-# mainly useful for debugging 
-# @discord_client.command() 
+# mainly useful for debugging
+# @discord_client.command()
 @discord_client.slash_command(name = "echo", description = "Say hello to the bot")
 async def echo(ctx, msg: str = 'echo'):
     # await ctx.respond(f"""```{ctx.author.id}: {msg}```""")
@@ -198,9 +199,9 @@ async def echo(ctx, msg: str = 'echo'):
 # teaches members how to use bot
 # you can specify commands to get in-depth help on them
 @discord_client.slash_command(name = "help", description = "shows the list of avaible commands with a few examples")
-async def help( ctx: discord.ApplicationContext, 
+async def help( ctx: discord.ApplicationContext,
                 command: discord.Option(str, 'Specify a command name to get more in depth help and examples', required=False, choices=["compare","download","random","readlib","search","steamid","uninstall"]) = None):
-    
+
     helpEmbed = discord.Embed(title = 'basic bitch', color = discord.Color.orange())
 
     if command == None:
@@ -235,7 +236,7 @@ async def help( ctx: discord.ApplicationContext,
                                                         \'o\' (Online): Displays if the game is multiplayer\n\
                                                         \'d\' (Downloaded): Displays if you have the game downloaded\n\
                                                         \'t\' (Tags): Shows all the tags Steam has associated with it')
-        
+
 
         helpEmbed.add_field(name = 'Examples', value = '/readlib @KingBubIII\n\n\
                                                         /readlib @KingBubIII -a\n\n\
@@ -294,7 +295,7 @@ async def help( ctx: discord.ApplicationContext,
 # anyone can call to read another persons library
 # @discord_client.command()
 @discord_client.slash_command(name = "readlib", description = "Read a specific person's library by mentioning them")
-async def readlib(  ctx: discord.ApplicationContext, 
+async def readlib(  ctx: discord.ApplicationContext,
                     member: discord.Option(discord.Member, 'Mention only one person', required=False),
                     details: discord.Option(str, 'You can use any number and combination of ', required=False)):
 
@@ -308,7 +309,7 @@ async def readlib(  ctx: discord.ApplicationContext,
     db.readlib(UsersLibrary, details)
     # creates embed pages
     await create_embeds(UsersLibrary, None)
-    
+
     # sends inital reponse
     await ctx.respond(embed=UsersLibrary.CurrentPage(), view=await UsersLibrary.getView(), ephemeral=True if ctx.author.name == member.name else False)
 
@@ -322,13 +323,13 @@ async def search(   ctx: discord.ApplicationContext,
     if member is None:
         member = ctx.author
 
-    #runs search command without being intention to change database values 
+    #runs search command without being intention to change database values
     response_lib = await Search_func(ctx, query, member, 'search')
-    
+
     await ctx.respond(embed=response_lib.CurrentPage(), view=await response_lib.getView())
 
 @discord_client.slash_command(name = "steamid", description = "This is basically your profile in my database")
-async def steamid(  ctx: discord.ApplicationContext, 
+async def steamid(  ctx: discord.ApplicationContext,
                     steamid: discord.Option(str, 'Find your Steam ID in your \'Account Details\'', required=True) ):
 
     if not steamid.isnumeric():
@@ -342,7 +343,7 @@ async def steamid(  ctx: discord.ApplicationContext,
 
     #updates mysql database and returns boolean value
     new_profile = db.profile_update(str(ctx.author.id), steamid, ctx.author.name)
-    
+
     #formats correct responce back
     msg = "Please wait for a few minutes for you library to update.```"
     if new_profile:
@@ -361,12 +362,12 @@ async def steamid(  ctx: discord.ApplicationContext,
 @discord_client.slash_command(name = "update_lib", description = "Only my creator can use this command. This will eventually be a background task")
 async def _update_lib(  ctx: discord.ApplicationContext,
                         member: discord.Option(discord.User, 'Mention user who library needs updating', required=True) ):
-    
+
     DB_BG_update.update_lib(member.name)
 
 # will give a common game suggestion between all mentioned members
 @discord_client.slash_command(name = "random", description = "Get a random game that all mentioned users own.")
-async def random(   ctx: discord.ApplicationContext, 
+async def random(   ctx: discord.ApplicationContext,
                     members: discord.Option( str, description="Mention multiple people in here", required=False),
                     downloaded: discord.Option(str, 'Searches only games that are downloaded for all parties', required=False, choices=["Yes", "No"], default = "Yes")):
     if members is None:
@@ -375,20 +376,20 @@ async def random(   ctx: discord.ApplicationContext,
         members = members.replace("><@", "> <@").split(" ")
         members = [ await get_user_class(member) for member in members if "<@" in member]
         members = [ member.name for member in members]
-    
+
     # get a result class
     results = db.get_master_and_member_game_data(members, True)
     results = [game_name[1] for game_name in results]
-    
+
     # select random element in the list, therefore random game
     random_game = rd.choice(results)
     # send chosen game embed
     await ctx.respond("```{0}```".format(random_game),ephemeral=True if len(members)==1 else False)
 
 @discord_client.slash_command(name = "uninstall", description = "Allows you to write to the database to remove what games are displayed that you can play")
-async def uninstall(    ctx: discord.ApplicationContext, 
+async def uninstall(    ctx: discord.ApplicationContext,
                         search_query: discord.Option( str, description="Use this just like the search command", required=False) = None):
-    
+
     results_lib = await Search_func(ctx, search_query, ctx.author, called_from='uninstall')
     await ctx.respond(embed=results_lib.CurrentPage(), view = await results_lib.getView(), ephemeral=True)
 discord_client.run(TOKEN)
