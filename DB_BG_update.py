@@ -109,6 +109,7 @@ def update_lib(discordName):
             for item in name_lookup:
                 if item["appid"] == game["appid"]:
                     gameName = item["name"]
+                    break
 
 
             # list of trademarks that become weird strings after webscrapping

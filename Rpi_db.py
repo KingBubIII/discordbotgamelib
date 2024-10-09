@@ -119,7 +119,7 @@ def readlib(libclass, formatting=None):
     orderby = 'gameName ASC' if (formatting==None or not 'h' in formatting) else 'hours DESC'
     #get a list of each game in the library and its master data with it
     #command = "SELECT mD.*, sD.* FROM masterData.games AS mD, `{0}`.`{1}` as sD WHERE mD.steamID = sD.gameID ORDER BY {2}".format(server, libclass.User, orderby)
-    command = "SELECT * FROM masterGamesList as mD JOIN `{0}` as pD WHERE mD.gameID = pD.gameID ORDER BY {1}".format(libclass.User, orderby)
+    command = "SELECT * FROM masterGamesList as mD JOIN `{0}` as pD WHERE mD.gameID = pD.gameID AND NOT mD.gamename = '' ORDER BY {1}".format(libclass.User, orderby)
     cursor.execute(command)
     #get the result
     all_games = cursor.fetchall()
